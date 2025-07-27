@@ -11,12 +11,14 @@ import {
 import { Hole } from './Hole'
 import { Level } from './types'
 import { testLevel } from '../levels/testLevel'
+import { DebugOverlay } from './DebugOverlay'
 
 export class Game {
   private engine: Engine
   private scene: Scene
   private hole: Hole
   private currentLevel: Level
+  private debugOverlay: DebugOverlay
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -29,6 +31,9 @@ export class Game {
 
     this.setupScene()
     this.setupControls()
+
+    // Create debug overlay
+    this.debugOverlay = new DebugOverlay(this.scene)
   }
 
   private setupScene() {
@@ -128,6 +133,7 @@ export class Game {
     this.engine.runRenderLoop(() => {
       this.scene.render()
       this.hole.update()
+      this.debugOverlay.update(this.hole)
     })
 
     window.addEventListener('resize', () => {

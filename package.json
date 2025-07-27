@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",
+    "@babylonjs/gui": "^7.54.3",
     "@babylonjs/materials": "^7.0.0"
   }
 }
