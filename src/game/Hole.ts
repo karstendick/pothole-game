@@ -38,6 +38,10 @@ export class Hole {
     this.holeMesh.position.z = z
   }
 
+  getPosition(): Vector3 {
+    return this.position.clone()
+  }
+
   update() {
     // Check for objects that should be swallowed
     const meshes = this.scene.meshes.filter(

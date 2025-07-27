@@ -33,19 +33,21 @@ pothole-game/
 
 ## Development Phases
 
-### Phase 1: Setup & Basic Hole (Week 1)
+### Phase 1: Setup & Basic Hole (Week 1) 🚧 IN PROGRESS
 - [x] Initialize Vite + TypeScript + BabylonJS
-- [ ] Create basic scene with ground plane
-- [ ] Implement moveable hole (circle cut in ground)
-- [ ] Add mobile touch controls
-- [ ] Setup GitHub Actions deployment
+- [x] Create basic scene with ground plane
+- [x] Implement moveable hole (simple disc for now)
+- [x] Add mobile touch controls
+- [x] Setup GitHub Actions deployment
+- [x] Add ESLint + Prettier with pre-commit hooks
 
-### Phase 2: Physics & Swallowing (Week 2)
-- [ ] Implement size-based swallow detection
-- [ ] Add hole growth mechanic when swallowing
-- [ ] Create swallow animation (object shrinks into hole)
+### Phase 2: Physics & Swallowing (Week 2) 🚧 IN PROGRESS
+- [x] Implement size-based swallow detection
+- [x] Add hole growth mechanic when swallowing
+- [x] Create swallow animation (object shrinks into hole)
 - [ ] Add object physics (rolling, tipping)
 - [ ] Generate first SVG objects (varied sizes)
+- [ ] Improve hole visualization (actual hole effect)
 
 ### Phase 3: Level Design (Week 3)
 - [ ] Create level loading system
@@ -81,9 +83,20 @@ pothole-game/
 3. Deploy directly from workflow (no gh-pages branch needed)
 4. Available at: https://karstendick.github.io/pothole-game
 
-## Next Steps
-1. Initialize the project with Vite + TypeScript + BabylonJS
-2. Create basic scene with ground and hole
-3. Implement hole movement with mouse/touch controls
-4. Add test objects and size-based swallowing
-5. Setup GitHub Actions for automatic deployment
+## Completed So Far
+- ✅ Project setup with Vite, TypeScript, BabylonJS
+- ✅ Basic game scene with camera, lighting, ground
+- ✅ Moveable hole with mouse/touch controls
+- ✅ Size-based swallowing mechanics
+- ✅ Hole growth on swallowing
+- ✅ Simple shrink animation
+- ✅ GitHub Actions for deployment and linting
+- ✅ ESLint + Prettier configuration
+
+## Next Steps (Priority Order)
+1. **Improve hole visualization** - Make it look like an actual hole in the ground
+2. **Add physics to objects** - Use Havok or Cannon.js for rolling/falling
+3. **SVG to 3D pipeline** - Create colorful, simple objects from SVG
+4. **Better camera angle** - More like Donut County's view
+5. **Sound effects** - Swallowing sounds, background music
+6. **First level design** - Start with a simple playground level

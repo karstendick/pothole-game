@@ -25,10 +25,10 @@ export class Game {
   }
 
   private setupScene() {
-    // Camera
-    const camera = new UniversalCamera('camera', new Vector3(0, 10, -10), this.scene)
+    // Camera - Fixed position, no user control (more angled like Donut County)
+    const camera = new UniversalCamera('camera', new Vector3(0, 15, -8), this.scene)
     camera.setTarget(Vector3.Zero())
-    camera.attachControl(this.canvas, true)
+    // Don't attach controls - camera should be fixed
 
     // Lighting
     const light = new HemisphericLight('light', new Vector3(0, 1, 0), this.scene)
@@ -39,6 +39,7 @@ export class Game {
     const groundMat = new StandardMaterial('groundMat', this.scene)
     groundMat.diffuseColor = new Color3(0.4, 0.6, 0.3)
     ground.material = groundMat
+    ground.isPickable = true // Ensure ground can be picked for hole movement
 
     // Test objects of different sizes
     this.createTestObjects()
@@ -68,24 +69,50 @@ export class Game {
   }
 
   private setupControls() {
-    // Mouse/touch controls for hole movement
+    // Mouse/touch controls for hole movement - drag anywhere to move
     let isPointerDown = false
+    let lastPointerX = 0
+    let lastPointerY = 0
 
-    this.scene.onPointerObservable.add((pointerInfo) => {
-      switch (pointerInfo.type) {
-        case 1: // POINTERDOWN
-          isPointerDown = true
-          break
-        case 2: // POINTERUP
-          isPointerDown = false
-          break
-        case 4: // POINTERMOVE
-          if (isPointerDown && pointerInfo.pickInfo?.pickedPoint) {
-            this.hole.moveTo(pointerInfo.pickInfo.pickedPoint.x, pointerInfo.pickInfo.pickedPoint.z)
-          }
-          break
+    this.canvas.addEventListener('pointerdown', (evt) => {
+      isPointerDown = true
+      lastPointerX = evt.clientX
+      lastPointerY = evt.clientY
+      evt.preventDefault()
+    })
+
+    this.canvas.addEventListener('pointerup', () => {
+      isPointerDown = false
+    })
+
+    this.canvas.addEventListener('pointermove', (evt) => {
+      if (isPointerDown) {
+        // Calculate drag delta
+        const deltaX = evt.clientX - lastPointerX
+        const deltaY = evt.clientY - lastPointerY
+
+        // Convert screen space movement to world space
+        // Adjust these multipliers to control sensitivity
+        const worldDeltaX = deltaX * 0.02
+        const worldDeltaZ = deltaY * 0.02
+
+        // Move hole relative to its current position
+        const currentPos = this.hole.getPosition()
+        this.hole.moveTo(currentPos.x + worldDeltaX, currentPos.z + worldDeltaZ)
+
+        lastPointerX = evt.clientX
+        lastPointerY = evt.clientY
       }
     })
+
+    // Prevent touch scrolling on mobile
+    this.canvas.addEventListener(
+      'touchmove',
+      (evt) => {
+        evt.preventDefault()
+      },
+      { passive: false },
+    )
   }
 
   start() {
