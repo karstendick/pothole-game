@@ -47,14 +47,15 @@ pothole-game/
 - [x] Automated gameplay tests with Playwright
 - [x] CI/CD optimizations with caching
 
-### Phase 2: Physics & Swallowing 🚧 IN PROGRESS
+### Phase 2: Physics & Swallowing ✅ COMPLETED
 - [x] Implement size-based swallow detection
 - [x] Add hole growth mechanic when swallowing
 - [x] ~~Create swallow animation (object shrinks into hole)~~
-- [ ] **Better swallow animation** - Objects should fall into hole, not shrink
-- [ ] Add object physics (rolling, tipping)
-- [ ] Generate first SVG objects (varied sizes)
-- [ ] Improve hole visualization (actual hole effect)
+- [x] **Better swallow animation** - Objects now fall into hole with physics
+- [x] Add Havok Physics engine integration
+- [x] Create actual 3D hole using CSG (cuts through ground)
+- [x] Two-layer ground for visual depth (green grass + dark earth)
+- [x] Objects fall naturally with physics when over hole
 
 ### Phase 3: Level Design
 - [ ] Create level loading system
@@ -140,19 +141,61 @@ pothole-game/
    - Save physics state for debug/testing
 
 6. **Implementation Steps**
-   - [ ] Add Havok Physics to project
-   - [ ] Create basic cylinder hole mesh
-   - [ ] Replace disc with cylinder in Hole class
-   - [ ] Add physics impostors to objects
-   - [ ] Implement fall detection logic
-   - [ ] Add falling animation with physics
-   - [ ] Create depth material/shader
-   - [ ] Add particle effects
-   - [ ] Performance optimization
-   - [ ] Update tests for new physics
+   - [x] Add Havok Physics to project
+   - [x] Create basic cylinder hole mesh
+   - [x] Replace disc with cylinder in Hole class
+   - [x] Add physics impostors to objects
+   - [x] Cut actual hole in ground using CSG
+   - [x] Implement fall detection logic
+   - [x] Add falling animation with physics
+   - [x] Create two-layer ground for depth effect
+   - [x] Performance optimization with debouncing
+   - [x] Update tests for new physics
+   - [x] Add axis indicators to debug overlay
 
-### Next Features After Physics
-1. **Sound effects** - Swallowing sounds, background music
-2. **Multiple levels** - Level progression system
-3. **SVG to 3D pipeline** - Create colorful, simple objects from SVG
-4. **Score/progress tracking** - Points, achievements, level completion
+## What to Work on Next
+
+### Option 1: Visual Polish & Effects (Recommended)
+Since the core physics mechanics are working, adding visual polish would make the biggest impact:
+- **Particle effects** when objects fall into hole (dust clouds, debris)
+- **Rim lighting** around hole edge for better visibility
+- **Smooth hole growth animation** instead of instant resize
+
+### Option 2: Sound Design
+Add audio feedback to make the game more engaging:
+- **Swallow sounds** that vary by object size
+- **Ambient background music**
+- **Victory sound** when level is complete
+- **Physics sounds** (objects hitting each other)
+
+### Option 3: Level System
+Start building the progression system:
+- **Level loading** from JSON/TypeScript configs
+- **Victory condition** (all objects swallowed)
+- **Level select screen**
+- **Save progress** to localStorage
+- **Different themed levels** (park, city, beach, etc.)
+
+### Option 4: SVG Object Pipeline
+Create more interesting objects:
+- **SVG to 3D conversion** utility
+- **Procedural object generation**
+- **Themed object sets** per level
+- **Different materials** (wood, metal, plastic)
+
+### Option 5: UI/UX Improvements
+Better user interface:
+- **Start menu**
+- **Pause functionality**
+- **Level complete screen**
+- **Tutorial/instructions**
+- **Mobile-optimized UI**
+
+### Recommendation: Start with Visual Polish
+The particle effects and visual improvements would:
+1. Make the game feel more polished immediately
+2. Enhance the physics you just implemented
+3. Be relatively quick to implement
+4. Make testing more enjoyable
+
+After visual polish, move to sound design, then level system.
