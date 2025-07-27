@@ -94,7 +94,7 @@ export class Game {
         // Convert screen space movement to world space
         // Adjust these multipliers to control sensitivity
         const worldDeltaX = deltaX * 0.02
-        const worldDeltaZ = deltaY * 0.02
+        const worldDeltaZ = -deltaY * 0.02 // Invert Y for proper up/down movement
 
         // Move hole relative to its current position
         const currentPos = this.hole.getPosition()
