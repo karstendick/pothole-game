@@ -1,8 +1,4 @@
 import { Scene, Vector3, Mesh, AbstractMesh } from '@babylonjs/core'
-import {
-  canSwallow as canSwallowLogic,
-  calculateGrowth as calculateGrowthLogic,
-} from './swallowLogic'
 
 export class Hole {
   private holeMesh: Mesh
@@ -64,12 +60,8 @@ export class Hole {
     return this.holeMesh
   }
 
-  canSwallow(objectRadius: number, distanceToObject: number): boolean {
-    return canSwallowLogic(this.radius, objectRadius, distanceToObject)
-  }
-
   calculateGrowth(objectRadius: number): number {
-    return calculateGrowthLogic(objectRadius, this.growthRate)
+    return objectRadius * this.growthRate
   }
 
   update() {
@@ -78,37 +70,15 @@ export class Hole {
       (mesh) =>
         mesh.name !== 'hole' &&
         mesh.name !== 'ground' &&
-        (mesh.name.startsWith('sphere') || mesh.name.startsWith('box')),
+        (mesh.name.startsWith('sphere') || mesh.name.startsWith('box')) &&
+        !mesh.isDisposed(),
     )
 
     meshes.forEach((mesh) => {
-      const distance = Vector3.Distance(mesh.position, this.position)
-      const meshRadius = this.getMeshRadius(mesh)
-
-      // If object is close enough and small enough, swallow it
-      // Debug logging - only when close to being able to swallow
-      if (mesh.name === 'sphere2' && this.radius > 0.9 && this.radius < 1.1) {
-        console.log(
-          `Green sphere: need hole radius > ${meshRadius.toFixed(2)}, current=${this.radius.toFixed(2)}`,
-        )
-      }
-
-      // Check if object is over the hole and can be swallowed
-      if (this.canSwallow(meshRadius, distance)) {
-        // Additional check: is the object actually over the hole opening?
-        const horizontalDistance = Math.sqrt(
-          Math.pow(mesh.position.x - this.position.x, 2) +
-            Math.pow(mesh.position.z - this.position.z, 2),
-        )
-
-        // Object must be within the hole radius and close to ground level
-        if (horizontalDistance < this.radius && mesh.position.y < 1) {
-          // Only swallow if not already being swallowed
-          if (!this.swallowingMeshes.has(mesh.id)) {
-            this.swallowingMeshes.add(mesh.id)
-            this.swallowObject(mesh)
-          }
-        }
+      // Simple check: is the object below ground level?
+      if (mesh.position.y < -0.5 && !this.swallowingMeshes.has(mesh.id)) {
+        this.swallowingMeshes.add(mesh.id)
+        this.swallowObject(mesh)
       }
     })
   }
@@ -120,7 +90,7 @@ export class Hole {
   }
 
   private swallowObject(mesh: AbstractMesh) {
-    // Calculate growth amount before starting animation
+    // Calculate growth amount based on object size
     const meshRadius = this.getMeshRadius(mesh)
     const growAmount = this.calculateGrowth(meshRadius)
 
@@ -128,20 +98,25 @@ export class Hole {
       `Swallowing ${mesh.name}: radius=${meshRadius.toFixed(2)}, growth=${growAmount.toFixed(3)}`,
     )
 
-    // Don't mess with physics - the hole in the ground will handle falling
-    // Just monitor the object's fall and dispose when deep enough
-    const checkFall = () => {
-      if (mesh.position.y < -5) {
-        // Fallen deep enough
-        mesh.dispose()
-        this.swallowingMeshes.delete(mesh.id)
-        this.grow(growAmount)
-      } else if (!mesh.isDisposed()) {
-        setTimeout(checkFall, 100)
+    // Check periodically if object is out of camera view
+    const checkVisibility = () => {
+      // Check if already disposed or removed from swallowing set
+      if (!mesh.isDisposed() && this.swallowingMeshes.has(mesh.id)) {
+        // Check if mesh is in camera frustum or deep enough
+        const camera = this.scene.activeCamera
+        if ((camera && !camera.isInFrustum(mesh)) || mesh.position.y < -10) {
+          // Object is out of view or deep enough - safe to dispose
+          mesh.dispose()
+          this.swallowingMeshes.delete(mesh.id)
+          this.grow(growAmount)
+        } else {
+          // Still visible, check again later
+          setTimeout(checkVisibility, 100)
+        }
       }
     }
 
-    checkFall()
+    checkVisibility()
   }
 
   grow(amount: number) {

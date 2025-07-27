@@ -266,17 +266,16 @@ export class DebugOverlay {
 
       // Update label text
       const textBlock = label.children[0] as TextBlock
-      const distance = meshPosition.subtract(holePos).length()
-      const canSwallow = hole.canSwallow(meshRadius, distance)
+      const belowGround = meshPosition.y < -0.5
 
       textBlock.text = [
         `${mesh.name}`,
         `Size: ${meshRadius.toFixed(2)}`,
-        `Can swallow: ${canSwallow ? 'YES' : 'NO'}`,
+        `Y: ${meshPosition.y.toFixed(2)}`,
       ].join('\n')
 
-      // Color based on swallowable state
-      label.background = canSwallow ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.3)'
+      // Color based on if object is below ground
+      label.background = belowGround ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.3)'
     })
 
     // Remove labels for objects that no longer exist

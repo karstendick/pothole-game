@@ -14,28 +14,34 @@ export const createMockScene = () => ({
   addMesh: vi.fn(),
 })
 
-export const createMockMesh = (name: string, position = { x: 0, y: 0, z: 0 }) => ({
-  id: name,
-  name,
-  position: {
-    x: position.x,
-    y: position.y,
-    z: position.z,
-  },
-  scaling: { x: 1, y: 1, z: 1 },
-  dispose: vi.fn(),
-  isDisposed: vi.fn(() => false),
-  getBoundingInfo: vi.fn(() => ({
-    maximum: {
-      x: position.x + 1,
-      y: position.y + 1,
-      z: position.z + 1,
-      subtract: vi.fn(() => ({
-        x: 2,
-        y: 2,
-        z: 2,
-      })),
+export const createMockMesh = (name: string, position = { x: 0, y: 0, z: 0 }) => {
+  let disposed = false
+  const mesh = {
+    id: name,
+    name,
+    position: {
+      x: position.x,
+      y: position.y,
+      z: position.z,
     },
-    minimum: { x: position.x - 1, y: position.y - 1, z: position.z - 1 },
-  })),
-})
+    scaling: { x: 1, y: 1, z: 1 },
+    dispose: vi.fn(() => {
+      disposed = true
+    }),
+    isDisposed: vi.fn(() => disposed),
+    getBoundingInfo: vi.fn(() => ({
+      maximum: {
+        x: position.x + 1,
+        y: position.y + 1,
+        z: position.z + 1,
+        subtract: vi.fn(() => ({
+          x: 2,
+          y: 2,
+          z: 2,
+        })),
+      },
+      minimum: { x: position.x - 1, y: position.y - 1, z: position.z - 1 },
+    })),
+  }
+  return mesh
+}

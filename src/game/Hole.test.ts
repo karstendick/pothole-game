@@ -107,6 +107,11 @@ describe('Hole', () => {
     // Mock the scene's lights array to avoid the light disposal issue
     scene.lights = []
 
+    // Mock activeCamera for visibility checks
+    scene.activeCamera = {
+      isInFrustum: vi.fn(() => true),
+    } as any
+
     vi.spyOn(scene, 'registerBeforeRender')
     vi.spyOn(scene, 'registerAfterRender')
 
@@ -120,8 +125,12 @@ describe('Hole', () => {
   })
 
   afterEach(() => {
-    scene.dispose()
-    engine.dispose()
+    try {
+      scene?.dispose()
+      engine?.dispose()
+    } catch {
+      // Ignore disposal errors in tests
+    }
     vi.useRealTimers()
     vi.restoreAllMocks()
   })
@@ -196,21 +205,17 @@ describe('Hole', () => {
       // Initial state
       expect(hole.getRadius()).toBe(0.8)
 
+      // Position object below ground to trigger swallowing
+      redSphere.position.y = -0.6
+
       // Call update - this should detect and swallow the red sphere
       hole.update()
 
-      // The object needs to be positioned over the hole and close to ground
-      redSphere.position.y = 0.5
-
-      // Fast forward to allow object to fall
-      vi.advanceTimersByTime(100)
-      hole.update()
-
-      // Simulate the object falling below the disposal threshold
-      redSphere.position.y = -6
+      // Simulate the object falling deeper
+      redSphere.position.y = -11 // Below -10 threshold
       vi.advanceTimersByTime(100)
 
-      // The object should be disposed after animation
+      // The object should be disposed after falling deep enough
       expect(redSphere.dispose).toHaveBeenCalled()
 
       // The hole should have grown
@@ -292,46 +297,41 @@ describe('Hole', () => {
       expect(greenSphere.dispose).not.toHaveBeenCalled()
       expect(hole.getRadius()).toBe(0.8)
 
-      // Position red sphere to be swallowed
-      redSphere.position.y = 0.5
-      vi.advanceTimersByTime(100)
+      // Position red sphere below ground to be swallowed
+      redSphere.position.y = -0.6
       hole.update()
 
-      // Simulate falling
-      redSphere.position.y = -6
+      // Simulate falling deep enough
+      redSphere.position.y = -11
       vi.advanceTimersByTime(100)
       expect(redSphere.dispose).toHaveBeenCalled()
-      expect(hole.getRadius()).toBeCloseTo(0.875)
+      expect(hole.getRadius()).toBeCloseTo(0.875, 2)
 
       // Move hole to blue box location
       hole.moveTo(5, 5)
 
-      // Position blue box to be swallowed
-      blueBox.position.y = 0.5
-      hole.update()
-      vi.advanceTimersByTime(100)
+      // Position blue box below ground to be swallowed
+      blueBox.position.y = -0.6
       hole.update()
 
-      // Simulate falling
-      blueBox.position.y = -6
+      // Simulate falling deep enough
+      blueBox.position.y = -11
       vi.advanceTimersByTime(100)
       expect(blueBox.dispose).toHaveBeenCalled()
-      expect(hole.getRadius()).toBeCloseTo(1.025)
+      expect(hole.getRadius()).toBeCloseTo(1.025, 2)
 
       // Move hole to green sphere location
       hole.moveTo(-3, -3)
 
       // Position green sphere to be swallowed
-      greenSphere.position.y = 0.5
-      hole.update()
-      vi.advanceTimersByTime(100)
+      greenSphere.position.y = -0.6
       hole.update()
 
-      // Simulate falling
-      greenSphere.position.y = -6
+      // Simulate falling deep enough
+      greenSphere.position.y = -11
       vi.advanceTimersByTime(100)
       expect(greenSphere.dispose).toHaveBeenCalled()
-      expect(hole.getRadius()).toBeCloseTo(1.325) // 1.025 + (1.0 * 0.3)
+      expect(hole.getRadius()).toBeCloseTo(1.325, 2) // 1.025 + (1.0 * 0.3)
     })
 
     it('should not swallow the same object twice', () => {
@@ -350,19 +350,17 @@ describe('Hole', () => {
 
       scene.meshes.push(smallSphere as any)
 
-      // Position sphere to be swallowed
-      smallSphere.position.y = 0.5
+      // Position sphere below ground to be swallowed
+      smallSphere.position.y = -0.6
 
       // First update - should start swallowing
       hole.update()
-      vi.advanceTimersByTime(50)
 
       // Second update before disposal - should not swallow again
       hole.update()
-      vi.advanceTimersByTime(50)
 
-      // Simulate falling below threshold
-      smallSphere.position.y = -6
+      // Simulate falling deep enough
+      smallSphere.position.y = -11
       vi.advanceTimersByTime(100)
 
       // Should only have been disposed once
