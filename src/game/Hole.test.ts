@@ -1,7 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { Vector3 } from '@babylonjs/core'
+import { Scene, Engine, NullEngine, Vector3 } from '@babylonjs/core'
 import { Hole } from './Hole'
-import { createMockScene, createMockMesh } from '../test/mocks/babylonMocks'
+import { createMockMesh } from '../test/mocks/babylonMocks'
+
+// Mock window.requestAnimationFrame
+// eslint-disable-next-line no-undef
+global.requestAnimationFrame = vi.fn((cb) => setTimeout(cb, 16)) as any
+
+// Mock Mesh constants first
+vi.mock('@babylonjs/core/Meshes/mesh', () => ({
+  Mesh: {
+    NO_CAP: 0,
+  },
+}))
 
 // Mock BabylonJS MeshBuilder
 vi.mock('@babylonjs/core', async () => {
@@ -28,12 +39,41 @@ vi.mock('@babylonjs/core', async () => {
         position: createMockVector3(0, 0, 0),
         material: null,
         dispose: vi.fn(),
+        parent: null,
+        isPickable: true,
+      })),
+      CreateCylinder: vi.fn(() => ({
+        position: createMockVector3(0, 0, 0),
+        material: null,
+        dispose: vi.fn(),
+        parent: null,
       })),
     },
     StandardMaterial: vi.fn(() => ({
       diffuseColor: null,
       specularColor: null,
+      emissiveColor: null,
+      diffuseTexture: null,
+      backFaceCulling: true,
     })),
+    DynamicTexture: vi.fn(() => ({
+      getContext: vi.fn(() => ({
+        fillStyle: '',
+        fillRect: vi.fn(),
+      })),
+      update: vi.fn(),
+    })),
+    Mesh: vi.fn(function (name: string) {
+      return {
+        name,
+        position: createMockVector3(0, 0, 0),
+        rotation: { x: 0, y: 0, z: 0 },
+        material: null,
+        parent: null,
+        isPickable: true,
+        dispose: vi.fn(),
+      }
+    }),
     Vector3: Object.assign(
       function (x: number, y: number, z: number) {
         return createMockVector3(x, y, z)
@@ -52,21 +92,37 @@ vi.mock('@babylonjs/core', async () => {
 })
 
 describe('Hole', () => {
-  let mockScene: any
+  let scene: Scene
+  let engine: Engine
   let hole: Hole
 
   beforeEach(() => {
-    mockScene = createMockScene()
+    // Mock the engine
+    engine = new NullEngine()
+
+    // Create scene with engine
+    scene = new Scene(engine)
+
+    // Mock the scene's lights array to avoid the light disposal issue
+    scene.lights = []
+
+    vi.spyOn(scene, 'registerBeforeRender')
+    vi.spyOn(scene, 'registerAfterRender')
+
+    vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.useFakeTimers()
   })
 
   afterEach(() => {
+    scene.dispose()
+    engine.dispose()
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   describe('initialization', () => {
     it('should initialize with default radius and position', () => {
-      hole = new Hole(mockScene)
+      hole = new Hole(scene)
 
       expect(hole.getRadius()).toBe(0.8)
       const position = hole.getPosition()
@@ -79,7 +135,7 @@ describe('Hole', () => {
       const customRadius = 1.2
       const customPosition = new Vector3(5, 0, 5)
 
-      hole = new Hole(mockScene, customRadius, customPosition)
+      hole = new Hole(scene, customRadius, customPosition)
 
       expect(hole.getRadius()).toBe(customRadius)
       const position = hole.getPosition()
@@ -90,7 +146,7 @@ describe('Hole', () => {
 
   describe('position', () => {
     it('should update position when moveTo is called', () => {
-      hole = new Hole(mockScene)
+      hole = new Hole(scene)
       const newX = 5
       const newZ = 10
 
@@ -104,7 +160,7 @@ describe('Hole', () => {
 
   describe('swallowing and growth', () => {
     it('should swallow objects and grow when update() is called', () => {
-      hole = new Hole(mockScene, 0.8) // Starting radius
+      hole = new Hole(scene, 0.8) // Starting radius
 
       // Create a small red sphere that can be swallowed
       const redSphere = createMockMesh('sphere1', { x: 0.2, y: 0, z: 0.2 })
@@ -119,7 +175,7 @@ describe('Hole', () => {
         minimum: { x: -0.25, y: -0.25, z: -0.25 },
       }))
 
-      mockScene.meshes = [redSphere]
+      scene.meshes.push(redSphere as any)
 
       // Initial state
       expect(hole.getRadius()).toBe(0.8)
@@ -127,8 +183,16 @@ describe('Hole', () => {
       // Call update - this should detect and swallow the red sphere
       hole.update()
 
-      // Fast forward through the swallow animation (20 frames * 16ms each)
-      vi.advanceTimersByTime(320)
+      // The object needs to be positioned over the hole and close to ground
+      redSphere.position.y = 0.5
+
+      // Fast forward to allow object to fall
+      vi.advanceTimersByTime(100)
+      hole.update()
+
+      // Simulate the object falling below the disposal threshold
+      redSphere.position.y = -6
+      vi.advanceTimersByTime(100)
 
       // The object should be disposed after animation
       expect(redSphere.dispose).toHaveBeenCalled()
@@ -138,7 +202,7 @@ describe('Hole', () => {
     })
 
     it('should not swallow objects that are too large', () => {
-      hole = new Hole(mockScene, 0.8)
+      hole = new Hole(scene, 0.8)
 
       // Create a large green sphere that cannot be swallowed
       const greenSphere = createMockMesh('sphere2', { x: 0.2, y: 0, z: 0.2 })
@@ -153,7 +217,7 @@ describe('Hole', () => {
         minimum: { x: -1.0, y: -1.0, z: -1.0 },
       }))
 
-      mockScene.meshes = [greenSphere]
+      scene.meshes.push(greenSphere as any)
 
       // Call update
       hole.update()
@@ -166,7 +230,7 @@ describe('Hole', () => {
     })
 
     it('should simulate full game progression with actual Hole instance', () => {
-      hole = new Hole(mockScene, 0.8)
+      hole = new Hole(scene, 0.8)
 
       // Create all three objects at different locations
       const redSphere = createMockMesh('sphere1', { x: 0.2, y: 0, z: 0.2 })
@@ -202,39 +266,57 @@ describe('Hole', () => {
         minimum: { x: -1.0, y: -1.0, z: -1.0 },
       }))
 
-      mockScene.meshes = [redSphere, blueBox, greenSphere]
+      scene.meshes.push(redSphere as any, blueBox as any, greenSphere as any)
 
       // Initially can't swallow green sphere
       hole.update()
       expect(greenSphere.dispose).not.toHaveBeenCalled()
       expect(hole.getRadius()).toBe(0.8)
 
-      // But red sphere should be swallowed - advance time first
-      vi.advanceTimersByTime(320)
+      // Position red sphere to be swallowed
+      redSphere.position.y = 0.5
+      vi.advanceTimersByTime(100)
+      hole.update()
+
+      // Simulate falling
+      redSphere.position.y = -6
+      vi.advanceTimersByTime(100)
       expect(redSphere.dispose).toHaveBeenCalled()
       expect(hole.getRadius()).toBeCloseTo(0.875)
 
       // Move hole to blue box location
       hole.moveTo(5, 5)
 
-      // Now update again - blue box should be swallowed
+      // Position blue box to be swallowed
+      blueBox.position.y = 0.5
       hole.update()
-      vi.advanceTimersByTime(320)
+      vi.advanceTimersByTime(100)
+      hole.update()
+
+      // Simulate falling
+      blueBox.position.y = -6
+      vi.advanceTimersByTime(100)
       expect(blueBox.dispose).toHaveBeenCalled()
       expect(hole.getRadius()).toBeCloseTo(1.025)
 
       // Move hole to green sphere location
       hole.moveTo(-3, -3)
 
-      // Finally, green sphere should be swallowable
+      // Position green sphere to be swallowed
+      greenSphere.position.y = 0.5
       hole.update()
-      vi.advanceTimersByTime(320)
+      vi.advanceTimersByTime(100)
+      hole.update()
+
+      // Simulate falling
+      greenSphere.position.y = -6
+      vi.advanceTimersByTime(100)
       expect(greenSphere.dispose).toHaveBeenCalled()
       expect(hole.getRadius()).toBeCloseTo(1.325) // 1.025 + (1.0 * 0.3)
     })
 
     it('should not swallow the same object twice', () => {
-      hole = new Hole(mockScene, 1.0)
+      hole = new Hole(scene, 1.0)
 
       const smallSphere = createMockMesh('sphere1', { x: 0.1, y: 0, z: 0.1 })
       smallSphere.getBoundingInfo = vi.fn(() => ({
@@ -247,19 +329,22 @@ describe('Hole', () => {
         minimum: { x: -0.25, y: -0.25, z: -0.25 },
       }))
 
-      mockScene.meshes = [smallSphere]
+      scene.meshes.push(smallSphere as any)
 
-      // First update - should swallow
+      // Position sphere to be swallowed
+      smallSphere.position.y = 0.5
+
+      // First update - should start swallowing
       hole.update()
+      vi.advanceTimersByTime(50)
 
-      // Advance only halfway through animation
-      vi.advanceTimersByTime(160)
-
-      // Second update before animation completes - should not swallow again
+      // Second update before disposal - should not swallow again
       hole.update()
+      vi.advanceTimersByTime(50)
 
-      // Complete the animation
-      vi.advanceTimersByTime(160)
+      // Simulate falling below threshold
+      smallSphere.position.y = -6
+      vi.advanceTimersByTime(100)
 
       // Should only have been disposed once
       expect(smallSphere.dispose).toHaveBeenCalledTimes(1)

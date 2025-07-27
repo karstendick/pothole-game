@@ -41,11 +41,11 @@ pothole-game/
 - [x] Setup GitHub Actions deployment
 - [x] Add ESLint + Prettier with pre-commit hooks
 
-### Phase 1.5: Development Tools & Testing 🚧 IN PROGRESS
-- [ ] Unit tests for game mechanics (swallowing, growth)
-- [ ] Debug overlay with real-time game state
-- [ ] Automated gameplay tests with Playwright
-- [ ] Screenshot/state sharing for debugging
+### Phase 1.5: Development Tools & Testing ✅ COMPLETED
+- [x] Unit tests for game mechanics (swallowing, growth)
+- [x] Debug overlay with real-time game state
+- [x] Automated gameplay tests with Playwright
+- [x] CI/CD optimizations with caching
 
 ### Phase 2: Physics & Swallowing 🚧 IN PROGRESS
 - [x] Implement size-based swallow detection
@@ -102,16 +102,57 @@ pothole-game/
 
 ## Next Steps (Priority Order)
 
-### Immediate: Better Development Feedback Loop
-1. **Unit tests for game logic** - Test swallowing mechanics, growth calculations
-2. **Debug overlay** - Show hole radius, object sizes, swallow ranges in real-time
-3. **Automated gameplay tests** - Use Playwright to simulate user interactions
+### Current Focus: Physics-Based Hole with Realistic Swallowing
 
-### Core Game Features
-1. **Improve hole visualization** - Make it look like an actual hole in the ground
-2. **Better swallow animation** - Objects fall into hole instead of shrinking
-3. **Add physics to objects** - Use Havok or Cannon.js for rolling/falling
-4. **SVG to 3D pipeline** - Create colorful, simple objects from SVG
-5. **Better camera angle** - More like Donut County's view
-6. **Sound effects** - Swallowing sounds, background music
-7. **First level design** - Start with a simple playground level
+#### Implementation Plan
+
+1. **Add Physics Engine**
+   - Install and configure Havok Physics (BabylonJS's recommended engine)
+   - Enable physics on the scene with appropriate gravity
+   - Add physics impostors to all game objects
+
+2. **Create 3D Cylindrical Hole**
+   - Replace flat disc with cylindrical mesh extending below ground
+   - Use CSG (Constructive Solid Geometry) to cut hole in ground mesh
+   - Create depth effect with:
+     - Dark gradient material (lighter at top, black at bottom)
+     - Transparent/semi-transparent walls for visibility
+     - Fog effect for illusion of infinite depth
+
+3. **Physics-Based Falling**
+   - When object overlaps hole sufficiently:
+     - Disable ground collision for that object
+     - Let physics engine handle natural falling
+     - Add slight inward force toward hole center
+     - Apply angular velocity for tumbling effect
+   - Objects disappear after falling below certain depth
+
+4. **Visual Enhancements**
+   - Rim lighting/shadow around hole edge
+   - Particle effects as objects fall (dust, debris)
+   - Subtle camera shake for large objects
+   - Improved hole material with depth parallax
+
+5. **Technical Considerations**
+   - Performance: Limit simultaneous physics objects
+   - Mobile optimization: Reduce physics iterations on low-end devices
+   - Hole growth: Dynamically update cylinder mesh and physics impostor
+   - Save physics state for debug/testing
+
+6. **Implementation Steps**
+   - [ ] Add Havok Physics to project
+   - [ ] Create basic cylinder hole mesh
+   - [ ] Replace disc with cylinder in Hole class
+   - [ ] Add physics impostors to objects
+   - [ ] Implement fall detection logic
+   - [ ] Add falling animation with physics
+   - [ ] Create depth material/shader
+   - [ ] Add particle effects
+   - [ ] Performance optimization
+   - [ ] Update tests for new physics
+
+### Next Features After Physics
+1. **Sound effects** - Swallowing sounds, background music
+2. **Multiple levels** - Level progression system
+3. **SVG to 3D pipeline** - Create colorful, simple objects from SVG
+4. **Score/progress tracking** - Points, achievements, level completion
