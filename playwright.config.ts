@@ -12,6 +12,10 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     hasTouch: true, // Enable touch support for mobile testing
+    // Enable WebGL in headless mode
+    launchOptions: {
+      args: ['--use-gl=swiftshader'],
+    },
   },
 
   projects: [

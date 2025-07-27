@@ -1,7 +1,38 @@
 import { test, expect } from '@playwright/test'
 
+test.describe('Basic Loading', () => {
+  test('page should load', async ({ page }) => {
+    await page.goto('/')
+    // Basic check that page loads
+    await expect(page).toHaveTitle(/Pothole Game/)
+
+    // Check canvas exists
+    const canvas = page.locator('#renderCanvas')
+    await expect(canvas).toBeVisible()
+
+    // Check WebGL support
+    const hasWebGL = await page.evaluate(() => {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      return !!gl
+    })
+    console.log('WebGL supported:', hasWebGL)
+  })
+})
+
 test.describe('Gameplay', () => {
   test.beforeEach(async ({ page }) => {
+    // Add console logging to debug CI issues
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        console.log('Browser console error:', msg.text())
+      }
+    })
+
+    page.on('pageerror', (error) => {
+      console.log('Page error:', error.message)
+    })
+
     await page.goto('/')
 
     // Wait for canvas element to exist

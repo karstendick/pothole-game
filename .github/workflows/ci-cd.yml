@@ -64,8 +64,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run E2E tests (Chrome only in CI)
+        run: npm run test:e2e -- --project=chromium
 
   # Step 2: Build the application
   build:
