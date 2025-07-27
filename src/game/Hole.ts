@@ -12,7 +12,8 @@ export class Hole {
   private holeMesh: Mesh
   private radius: number = 0.8
   private position: Vector3 = Vector3.Zero()
-  private growthRate: number = 0.02 // How much the radius grows per swallow
+  private growthRate: number = 0.3 // How much the radius grows per swallow
+  private swallowingMeshes: Set<string> = new Set() // Track meshes being swallowed
 
   constructor(private scene: Scene) {
     this.holeMesh = this.createHoleMesh()
@@ -47,8 +48,9 @@ export class Hole {
     // Check for objects that should be swallowed
     const meshes = this.scene.meshes.filter(
       (mesh) =>
-        (mesh.name !== 'hole' && mesh.name !== 'ground' && mesh.name.startsWith('sphere')) ||
-        mesh.name.startsWith('box'),
+        mesh.name !== 'hole' &&
+        mesh.name !== 'ground' &&
+        (mesh.name.startsWith('sphere') || mesh.name.startsWith('box')),
     )
 
     meshes.forEach((mesh) => {
@@ -56,8 +58,22 @@ export class Hole {
       const meshRadius = this.getMeshRadius(mesh)
 
       // If object is close enough and small enough, swallow it
-      if (distance < this.radius && meshRadius < this.radius * 0.8) {
-        this.swallowObject(mesh)
+      // Check both center distance and edge distance for better mobile experience
+      const edgeDistance = distance - meshRadius
+
+      // Debug logging - only when close to being able to swallow
+      if (mesh.name === 'sphere2' && this.radius > 0.9 && this.radius < 1.1) {
+        console.log(
+          `Green sphere: need hole radius > ${meshRadius.toFixed(2)}, current=${this.radius.toFixed(2)}`,
+        )
+      }
+
+      if (edgeDistance < this.radius * 0.9 && meshRadius < this.radius) {
+        // Only swallow if not already being swallowed
+        if (!this.swallowingMeshes.has(mesh.id)) {
+          this.swallowingMeshes.add(mesh.id)
+          this.swallowObject(mesh)
+        }
       }
     })
   }
@@ -69,6 +85,14 @@ export class Hole {
   }
 
   private swallowObject(mesh: AbstractMesh) {
+    // Calculate growth amount before starting animation
+    const meshRadius = this.getMeshRadius(mesh)
+    const growAmount = meshRadius * this.growthRate
+
+    console.log(
+      `Swallowing ${mesh.name}: radius=${meshRadius.toFixed(2)}, growth=${growAmount.toFixed(3)}`,
+    )
+
     // Simple swallow animation - shrink and disappear
     const animationFrames = 20
     let frame = 0
@@ -80,9 +104,9 @@ export class Hole {
 
       if (frame >= animationFrames) {
         mesh.dispose()
-        // Grow the hole based on the size of the object swallowed
-        const meshRadius = this.getMeshRadius(mesh)
-        const growAmount = meshRadius * this.growthRate
+        // Remove from tracking set
+        this.swallowingMeshes.delete(mesh.id)
+        // Grow the hole
         this.grow(growAmount)
       } else {
         setTimeout(shrinkAnimation, 16)
@@ -93,7 +117,12 @@ export class Hole {
   }
 
   private grow(amount: number) {
+    const oldRadius = this.radius
     this.radius += amount
+    console.log(
+      `Hole growing: ${oldRadius.toFixed(2)} -> ${this.radius.toFixed(2)} (grew by ${amount.toFixed(3)})`,
+    )
+
     // Update disc to new size - recreate it to ensure it stays circular
     const currentX = this.position.x
     const currentZ = this.position.z
