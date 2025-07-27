@@ -33,7 +33,7 @@ pothole-game/
 
 ## Development Phases
 
-### Phase 1: Setup & Basic Hole (Week 1) 🚧 IN PROGRESS
+### Phase 1: Setup & Basic Hole ✅ COMPLETED
 - [x] Initialize Vite + TypeScript + BabylonJS
 - [x] Create basic scene with ground plane
 - [x] Implement moveable hole (simple disc for now)
@@ -41,22 +41,29 @@ pothole-game/
 - [x] Setup GitHub Actions deployment
 - [x] Add ESLint + Prettier with pre-commit hooks
 
-### Phase 2: Physics & Swallowing (Week 2) 🚧 IN PROGRESS
+### Phase 1.5: Development Tools & Testing 🚧 IN PROGRESS
+- [ ] Unit tests for game mechanics (swallowing, growth)
+- [ ] Debug overlay with real-time game state
+- [ ] Automated gameplay tests with Playwright
+- [ ] Screenshot/state sharing for debugging
+
+### Phase 2: Physics & Swallowing 🚧 IN PROGRESS
 - [x] Implement size-based swallow detection
 - [x] Add hole growth mechanic when swallowing
-- [x] Create swallow animation (object shrinks into hole)
+- [x] ~~Create swallow animation (object shrinks into hole)~~
+- [ ] **Better swallow animation** - Objects should fall into hole, not shrink
 - [ ] Add object physics (rolling, tipping)
 - [ ] Generate first SVG objects (varied sizes)
 - [ ] Improve hole visualization (actual hole effect)
 
-### Phase 3: Level Design (Week 3)
+### Phase 3: Level Design
 - [ ] Create level loading system
 - [ ] Design 5-6 simple levels
 - [ ] Add progression (hole size limits)
 - [ ] Generate themed SVG objects per level
 - [ ] Add sound effects
 
-### Phase 4: Polish (Week 4)
+### Phase 4: Polish
 - [ ] Add particle effects
 - [ ] Create simple UI/menus
 - [ ] Add level select screen
@@ -94,9 +101,17 @@ pothole-game/
 - ✅ ESLint + Prettier configuration
 
 ## Next Steps (Priority Order)
+
+### Immediate: Better Development Feedback Loop
+1. **Unit tests for game logic** - Test swallowing mechanics, growth calculations
+2. **Debug overlay** - Show hole radius, object sizes, swallow ranges in real-time
+3. **Automated gameplay tests** - Use Playwright to simulate user interactions
+
+### Core Game Features
 1. **Improve hole visualization** - Make it look like an actual hole in the ground
-2. **Add physics to objects** - Use Havok or Cannon.js for rolling/falling
-3. **SVG to 3D pipeline** - Create colorful, simple objects from SVG
-4. **Better camera angle** - More like Donut County's view
-5. **Sound effects** - Swallowing sounds, background music
-6. **First level design** - Start with a simple playground level
+2. **Better swallow animation** - Objects fall into hole instead of shrinking
+3. **Add physics to objects** - Use Havok or Cannon.js for rolling/falling
+4. **SVG to 3D pipeline** - Create colorful, simple objects from SVG
+5. **Better camera angle** - More like Donut County's view
+6. **Sound effects** - Swallowing sounds, background music
+7. **First level design** - Start with a simple playground level
