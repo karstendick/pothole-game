@@ -121,7 +121,20 @@ export class Game {
       if (obj.type === 'sphere') {
         mesh = MeshBuilder.CreateSphere(obj.name, { diameter: obj.size }, this.scene)
       } else {
-        mesh = MeshBuilder.CreateBox(obj.name, { size: obj.size }, this.scene)
+        // Support custom dimensions for boxes
+        if (obj.dimensions) {
+          mesh = MeshBuilder.CreateBox(
+            obj.name,
+            {
+              width: obj.dimensions.x,
+              height: obj.dimensions.y,
+              depth: obj.dimensions.z,
+            },
+            this.scene,
+          )
+        } else {
+          mesh = MeshBuilder.CreateBox(obj.name, { size: obj.size }, this.scene)
+        }
       }
 
       mesh.position = obj.position.clone()
@@ -130,8 +143,12 @@ export class Game {
       mat.diffuseColor = obj.color
       mesh.material = mat
 
-      // Store object type for physics setup
-      mesh.metadata = { type: obj.type, size: obj.size }
+      // Store object type and dimensions for physics setup
+      mesh.metadata = {
+        type: obj.type,
+        size: obj.size,
+        dimensions: obj.dimensions,
+      }
     })
   }
 

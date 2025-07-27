@@ -1,4 +1,12 @@
-import { Scene, Vector3, Color3, MeshBuilder, StandardMaterial } from '@babylonjs/core'
+import {
+  Scene,
+  Vector3,
+  Color3,
+  MeshBuilder,
+  StandardMaterial,
+  Mesh,
+  LinesMesh,
+} from '@babylonjs/core'
 import { AdvancedDynamicTexture, Rectangle, TextBlock, Control } from '@babylonjs/gui'
 import { Hole } from './Hole'
 
@@ -8,7 +16,7 @@ export class DebugOverlay {
   private debugPanel: Rectangle
   private debugText: TextBlock
   private objectLabels: Map<string, Rectangle> = new Map()
-  private axisLines: any[] = []
+  private axisLines: (Mesh | LinesMesh)[] = []
 
   constructor(private scene: Scene) {
     // Create fullscreen UI

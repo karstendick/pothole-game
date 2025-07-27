@@ -4,6 +4,7 @@ export interface GameObject {
   name: string
   position: Vector3
   size: number // diameter for spheres, edge length for boxes
+  dimensions?: Vector3 // optional: for non-cubic boxes (width, height, depth)
   color: Color3
   type: 'sphere' | 'box'
 }
