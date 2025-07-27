@@ -140,7 +140,7 @@ export class Game {
 
     // Add physics to both ground layers
     if (!this.groundTop || !this.groundBottom) {
-      throw new Error('Ground layers not initialized - this should never happen')
+      throw new Error('Ground layers not initialized')
     }
 
     const topAggregate = new PhysicsAggregate(

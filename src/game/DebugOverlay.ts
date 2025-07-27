@@ -1,4 +1,4 @@
-import { Scene, Vector3 } from '@babylonjs/core'
+import { Scene, Vector3, Color3, MeshBuilder, StandardMaterial } from '@babylonjs/core'
 import { AdvancedDynamicTexture, Rectangle, TextBlock, Control } from '@babylonjs/gui'
 import { Hole } from './Hole'
 
@@ -8,6 +8,7 @@ export class DebugOverlay {
   private debugPanel: Rectangle
   private debugText: TextBlock
   private objectLabels: Map<string, Rectangle> = new Map()
+  private axisLines: any[] = []
 
   constructor(private scene: Scene) {
     // Create fullscreen UI
@@ -45,11 +46,125 @@ export class DebugOverlay {
         this.toggle()
       }
     })
+
+    // Create axis indicators
+    this.createAxisIndicators()
+  }
+
+  private createAxisIndicators() {
+    const axisLength = 2
+    const origin = Vector3.Zero()
+
+    // X axis - Red
+    const xAxis = MeshBuilder.CreateLines(
+      'xAxis',
+      {
+        points: [origin, new Vector3(axisLength, 0, 0)],
+      },
+      this.scene,
+    )
+    xAxis.color = new Color3(1, 0, 0) // Red
+    xAxis.isPickable = false
+    xAxis.isVisible = false
+    this.axisLines.push(xAxis)
+
+    // Y axis - Green
+    const yAxis = MeshBuilder.CreateLines(
+      'yAxis',
+      {
+        points: [origin, new Vector3(0, axisLength, 0)],
+      },
+      this.scene,
+    )
+    yAxis.color = new Color3(0, 1, 0) // Green
+    yAxis.isPickable = false
+    yAxis.isVisible = false
+    this.axisLines.push(yAxis)
+
+    // Z axis - Blue
+    const zAxis = MeshBuilder.CreateLines(
+      'zAxis',
+      {
+        points: [origin, new Vector3(0, 0, axisLength)],
+      },
+      this.scene,
+    )
+    zAxis.color = new Color3(0, 0, 1) // Blue
+    zAxis.isPickable = false
+    zAxis.isVisible = false
+    this.axisLines.push(zAxis)
+
+    // Create arrow heads for each axis
+    const arrowSize = 0.1
+
+    // X arrow (cone pointing right)
+    const xArrow = MeshBuilder.CreateCylinder(
+      'xArrow',
+      {
+        diameterTop: 0,
+        diameterBottom: arrowSize,
+        height: arrowSize * 2,
+        tessellation: 6,
+      },
+      this.scene,
+    )
+    xArrow.position = new Vector3(axisLength, 0, 0)
+    xArrow.rotation.z = -Math.PI / 2
+    const xMat = new StandardMaterial('xMat', this.scene)
+    xMat.emissiveColor = new Color3(1, 0, 0)
+    xArrow.material = xMat
+    xArrow.isPickable = false
+    xArrow.isVisible = false
+    this.axisLines.push(xArrow)
+
+    // Y arrow (cone pointing up)
+    const yArrow = MeshBuilder.CreateCylinder(
+      'yArrow',
+      {
+        diameterTop: 0,
+        diameterBottom: arrowSize,
+        height: arrowSize * 2,
+        tessellation: 6,
+      },
+      this.scene,
+    )
+    yArrow.position = new Vector3(0, axisLength, 0)
+    const yMat = new StandardMaterial('yMat', this.scene)
+    yMat.emissiveColor = new Color3(0, 1, 0)
+    yArrow.material = yMat
+    yArrow.isPickable = false
+    yArrow.isVisible = false
+    this.axisLines.push(yArrow)
+
+    // Z arrow (cone pointing forward)
+    const zArrow = MeshBuilder.CreateCylinder(
+      'zArrow',
+      {
+        diameterTop: 0,
+        diameterBottom: arrowSize,
+        height: arrowSize * 2,
+        tessellation: 6,
+      },
+      this.scene,
+    )
+    zArrow.position = new Vector3(0, 0, axisLength)
+    zArrow.rotation.x = Math.PI / 2
+    const zMat = new StandardMaterial('zMat', this.scene)
+    zMat.emissiveColor = new Color3(0, 0, 1)
+    zArrow.material = zMat
+    zArrow.isPickable = false
+    zArrow.isVisible = false
+    this.axisLines.push(zArrow)
   }
 
   toggle() {
     this.enabled = !this.enabled
     this.debugPanel.isVisible = this.enabled
+
+    // Toggle axis visibility
+    this.axisLines.forEach((line) => {
+      line.isVisible = this.enabled
+    })
 
     if (!this.enabled) {
       // Hide all object labels
@@ -82,6 +197,7 @@ export class DebugOverlay {
       `Hole Position: (${holePos.x.toFixed(1)}, ${holePos.z.toFixed(1)})`,
       `Objects in scene: ${meshes.length}`,
       '',
+      'Axes: X=Red, Y=Green, Z=Blue',
       'Press D to toggle debug mode',
     ].join('\n')
 
@@ -167,5 +283,10 @@ export class DebugOverlay {
 
   dispose() {
     this.gui.dispose()
+
+    // Dispose axis indicators
+    this.axisLines.forEach((line) => {
+      line.dispose()
+    })
   }
 }
