@@ -95,6 +95,7 @@ describe('Hole', () => {
   let scene: Scene
   let engine: Engine
   let hole: Hole
+  let mockGame: { cutHoleInGround: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
     // Mock the engine
@@ -111,6 +112,11 @@ describe('Hole', () => {
 
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.useFakeTimers()
+
+    // Create mock game object
+    mockGame = {
+      cutHoleInGround: vi.fn(),
+    }
   })
 
   afterEach(() => {
@@ -122,31 +128,39 @@ describe('Hole', () => {
 
   describe('initialization', () => {
     it('should initialize with default radius and position', () => {
-      hole = new Hole(scene)
+      hole = new Hole(scene, 0.8, Vector3.Zero(), mockGame)
 
       expect(hole.getRadius()).toBe(0.8)
       const position = hole.getPosition()
       expect(position.x).toBe(0)
       expect(position.y).toBe(0)
       expect(position.z).toBe(0)
+      expect(mockGame.cutHoleInGround).toHaveBeenCalledWith(expect.anything(), 0.8)
     })
 
     it('should initialize with custom radius and position', () => {
       const customRadius = 1.2
       const customPosition = new Vector3(5, 0, 5)
 
-      hole = new Hole(scene, customRadius, customPosition)
+      hole = new Hole(scene, customRadius, customPosition, mockGame)
 
       expect(hole.getRadius()).toBe(customRadius)
       const position = hole.getPosition()
       expect(position.x).toBe(5)
       expect(position.z).toBe(5)
+      expect(mockGame.cutHoleInGround).toHaveBeenCalledWith(expect.anything(), 1.2)
+    })
+
+    it('should throw error if game reference is not provided', () => {
+      expect(() => new Hole(scene, 0.8, Vector3.Zero(), null as any)).toThrow(
+        'Game reference is required for Hole to function',
+      )
     })
   })
 
   describe('position', () => {
     it('should update position when moveTo is called', () => {
-      hole = new Hole(scene)
+      hole = new Hole(scene, 0.8, Vector3.Zero(), mockGame)
       const newX = 5
       const newZ = 10
 
@@ -155,12 +169,14 @@ describe('Hole', () => {
       const position = hole.getPosition()
       expect(position.x).toBe(newX)
       expect(position.z).toBe(newZ)
+      // Should call cutHoleInGround when position changes
+      expect(mockGame.cutHoleInGround).toHaveBeenCalledTimes(2) // Once on init, once on move
     })
   })
 
   describe('swallowing and growth', () => {
     it('should swallow objects and grow when update() is called', () => {
-      hole = new Hole(scene, 0.8) // Starting radius
+      hole = new Hole(scene, 0.8, Vector3.Zero(), mockGame) // Starting radius
 
       // Create a small red sphere that can be swallowed
       const redSphere = createMockMesh('sphere1', { x: 0.2, y: 0, z: 0.2 })
@@ -199,10 +215,13 @@ describe('Hole', () => {
 
       // The hole should have grown
       expect(hole.getRadius()).toBeCloseTo(0.875) // 0.8 + (0.25 * 0.3)
+
+      // Should have called cutHoleInGround when hole grew
+      expect(mockGame.cutHoleInGround).toHaveBeenCalledWith(expect.anything(), 0.875)
     })
 
     it('should not swallow objects that are too large', () => {
-      hole = new Hole(scene, 0.8)
+      hole = new Hole(scene, 0.8, Vector3.Zero(), mockGame)
 
       // Create a large green sphere that cannot be swallowed
       const greenSphere = createMockMesh('sphere2', { x: 0.2, y: 0, z: 0.2 })
@@ -230,7 +249,7 @@ describe('Hole', () => {
     })
 
     it('should simulate full game progression with actual Hole instance', () => {
-      hole = new Hole(scene, 0.8)
+      hole = new Hole(scene, 0.8, Vector3.Zero(), mockGame)
 
       // Create all three objects at different locations
       const redSphere = createMockMesh('sphere1', { x: 0.2, y: 0, z: 0.2 })
@@ -316,7 +335,7 @@ describe('Hole', () => {
     })
 
     it('should not swallow the same object twice', () => {
-      hole = new Hole(scene, 1.0)
+      hole = new Hole(scene, 1.0, Vector3.Zero(), mockGame)
 
       const smallSphere = createMockMesh('sphere1', { x: 0.1, y: 0, z: 0.1 })
       smallSphere.getBoundingInfo = vi.fn(() => ({

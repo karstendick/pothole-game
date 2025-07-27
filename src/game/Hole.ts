@@ -10,23 +10,25 @@ export class Hole {
   private position: Vector3
   private growthRate: number = 0.3 // How much the radius grows per swallow
   private swallowingMeshes: Set<string> = new Set() // Track meshes being swallowed
-  private game?: { cutHoleInGround: (position: Vector3, radius: number) => void } // Reference to Game instance for CSG operations
+  private game: { cutHoleInGround: (position: Vector3, radius: number) => void } // Reference to Game instance for CSG operations
 
   constructor(
     private scene: Scene,
     initialRadius: number = 0.8,
     initialPosition: Vector3 = Vector3.Zero(),
-    game?: { cutHoleInGround: (position: Vector3, radius: number) => void },
+    game: { cutHoleInGround: (position: Vector3, radius: number) => void },
   ) {
+    if (!game) {
+      throw new Error('Game reference is required for Hole to function')
+    }
+
     this.radius = initialRadius
     this.position = initialPosition.clone()
     this.game = game
     this.holeMesh = this.createHoleMesh()
 
-    // Cut initial hole in ground if game reference provided
-    if (this.game) {
-      this.game.cutHoleInGround(this.position, this.radius)
-    }
+    // Cut initial hole in ground
+    this.game.cutHoleInGround(this.position, this.radius)
   }
 
   private createHoleMesh(): Mesh {
@@ -45,11 +47,9 @@ export class Hole {
     this.holeMesh.position.x = x
     this.holeMesh.position.z = z
 
-    // Re-cut hole at new position if game reference provided
+    // Re-cut hole at new position
     // The cutHoleInGround method is debounced, so it won't cut every frame
-    if (this.game) {
-      this.game.cutHoleInGround(this.position, this.radius)
-    }
+    this.game.cutHoleInGround(this.position, this.radius)
   }
 
   getPosition(): Vector3 {
@@ -160,9 +160,7 @@ export class Hole {
     this.holeMesh.position.x = currentX
     this.holeMesh.position.z = currentZ
 
-    // Re-cut hole with new radius if game reference provided
-    if (this.game) {
-      this.game.cutHoleInGround(this.position, this.radius)
-    }
+    // Re-cut hole with new radius
+    this.game.cutHoleInGround(this.position, this.radius)
   }
 }
