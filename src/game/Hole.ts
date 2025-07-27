@@ -1,4 +1,12 @@
-import { Scene, Vector3, MeshBuilder, StandardMaterial, Color3, Mesh } from '@babylonjs/core'
+import {
+  Scene,
+  Vector3,
+  MeshBuilder,
+  StandardMaterial,
+  Color3,
+  Mesh,
+  AbstractMesh,
+} from '@babylonjs/core'
 
 export class Hole {
   private holeMesh: Mesh
@@ -49,13 +57,13 @@ export class Hole {
     })
   }
 
-  private getMeshRadius(mesh: Mesh): number {
+  private getMeshRadius(mesh: AbstractMesh): number {
     const boundingInfo = mesh.getBoundingInfo()
     const size = boundingInfo.maximum.subtract(boundingInfo.minimum)
     return Math.max(size.x, size.y, size.z) / 2
   }
 
-  private swallowObject(mesh: Mesh) {
+  private swallowObject(mesh: AbstractMesh) {
     // Simple swallow animation - shrink and disappear
     const animationFrames = 20
     let frame = 0
