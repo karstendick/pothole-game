@@ -11,7 +11,6 @@ import {
 export class Hole {
   private holeMesh: Mesh
   private radius: number = 0.8
-  private initialRadius: number = 0.8
   private position: Vector3 = Vector3.Zero()
   private growthRate: number = 0.02 // How much the radius grows per swallow
 
