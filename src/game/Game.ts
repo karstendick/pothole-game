@@ -72,21 +72,37 @@ export class Game {
     const light = new HemisphericLight('light', new Vector3(0, 1, 0), this.scene)
     light.intensity = 0.7
 
-    // Ground - Create as a box with thickness for CSG operations
+    // Ground - Create as two separate layers for visual depth
     const groundSize = this.currentLevel.groundSize
-    const groundThickness = 2 // Give ground some depth
-    const ground = MeshBuilder.CreateBox(
-      'ground',
-      { width: groundSize, height: groundThickness, depth: groundSize },
+
+    // Top layer - thin green grass layer
+    const topThickness = 1.5
+    this.groundTop = MeshBuilder.CreateBox(
+      'groundTop',
+      { width: groundSize, height: topThickness, depth: groundSize },
       this.scene,
     )
-    // Position ground so top surface is at y=0
-    ground.position.y = -groundThickness / 2
+    this.groundTop.position.y = -topThickness / 2
 
-    const groundMat = new StandardMaterial('groundMat', this.scene)
-    groundMat.diffuseColor = new Color3(0.4, 0.6, 0.3)
-    ground.material = groundMat
-    ground.isPickable = true
+    const topMat = new StandardMaterial('topMat', this.scene)
+    topMat.diffuseColor = new Color3(0.4, 0.6, 0.3) // Green grass
+    this.groundTop.material = topMat
+    this.groundTop.isPickable = true
+
+    // Bottom layer - thick dark earth layer
+    const bottomThickness = 23.5
+    this.groundBottom = MeshBuilder.CreateBox(
+      'groundBottom',
+      { width: groundSize, height: bottomThickness, depth: groundSize },
+      this.scene,
+    )
+    this.groundBottom.position.y = -topThickness - bottomThickness / 2
+
+    const bottomMat = new StandardMaterial('bottomMat', this.scene)
+    bottomMat.diffuseColor = new Color3(0.05, 0.04, 0.03) // Very dark earth
+    bottomMat.specularColor = new Color3(0, 0, 0)
+    this.groundBottom.material = bottomMat
+    this.groundBottom.isPickable = true
 
     // Create level objects
     this.createLevelObjects()
@@ -118,17 +134,27 @@ export class Game {
   private addPhysicsToScene() {
     console.log('Adding physics to scene objects...')
 
-    // Add physics to ground
-    const ground = this.scene.getMeshByName('ground')
-    if (ground) {
-      const groundAggregate = new PhysicsAggregate(
-        ground,
+    // Add physics to both ground layers
+    if (this.groundTop) {
+      const topAggregate = new PhysicsAggregate(
+        this.groundTop,
         PhysicsShapeType.BOX,
         { mass: 0 },
         this.scene,
       )
-      ground.metadata = { physicsAggregate: groundAggregate }
-      console.log('Physics added to ground')
+      this.groundTop.metadata = { physicsAggregate: topAggregate }
+      console.log('Physics added to ground top layer')
+    }
+
+    if (this.groundBottom) {
+      const bottomAggregate = new PhysicsAggregate(
+        this.groundBottom,
+        PhysicsShapeType.BOX,
+        { mass: 0 },
+        this.scene,
+      )
+      this.groundBottom.metadata = { physicsAggregate: bottomAggregate }
+      console.log('Physics added to ground bottom layer')
     }
 
     // Add physics to all game objects
@@ -212,7 +238,10 @@ export class Game {
     return this.physicsAggregates.get(meshName)
   }
 
-  private originalGround: Mesh | null = null
+  private groundTop: Mesh | null = null
+  private groundBottom: Mesh | null = null
+  private originalGroundTop: Mesh | null = null
+  private originalGroundBottom: Mesh | null = null
 
   private lastHolePosition: Vector3 | null = null
   private lastHoleRadius: number = 0
@@ -223,7 +252,7 @@ export class Game {
     if (this.isUpdatingHole) return
 
     // Only update if position changed significantly or radius changed
-    const minDistance = 0.1 // Minimum distance to trigger update
+    const minDistance = 0.3 // Increased minimum distance to reduce updates
     const needsUpdate =
       !this.lastHolePosition ||
       Vector3.Distance(position, this.lastHolePosition) > minDistance ||
@@ -243,29 +272,20 @@ export class Game {
   }
 
   private _cutHoleInGroundImmediate(position: Vector3, radius: number) {
-    // Keep original ground mesh for resetting
-    if (!this.originalGround) {
-      const ground = this.scene.getMeshByName('ground') as Mesh
-      if (!ground) return
-      this.originalGround = ground.clone('originalGround')
-      this.originalGround.setEnabled(false)
+    if (!this.groundTop || !this.groundBottom) return
+
+    // Store originals on first cut
+    if (!this.originalGroundTop) {
+      this.originalGroundTop = this.groundTop.clone('originalGroundTop')
+      this.originalGroundTop.setEnabled(false)
+    }
+    if (!this.originalGroundBottom) {
+      this.originalGroundBottom = this.groundBottom.clone('originalGroundBottom')
+      this.originalGroundBottom.setEnabled(false)
     }
 
-    const ground = this.scene.getMeshByName('ground') as Mesh
-    if (!ground) return
-
-    // Store and dispose old physics aggregate
-    const oldPhysics = ground.metadata?.physicsAggregate as PhysicsAggregate
-    if (oldPhysics) {
-      oldPhysics.dispose()
-    }
-
-    // Create a fresh ground from the original
-    const freshGround = this.originalGround.clone('tempGround')
-    freshGround.setEnabled(true)
-
-    // Create cylinder to subtract
-    const holeDepth = 4
+    // Create cylinder to subtract - make it very deep
+    const holeDepth = 20 // Much deeper so bottom is never visible
     const holeCylinder = MeshBuilder.CreateCylinder(
       'holeCutter',
       {
@@ -276,37 +296,75 @@ export class Game {
       this.scene,
     )
 
-    // Position cylinder to cut through ground
+    // Position cylinder to cut through both layers
     holeCylinder.position.x = position.x
     holeCylinder.position.z = position.z
     holeCylinder.position.y = -holeDepth / 2 + 0.01 // Slightly above ground top
 
-    // Convert meshes to CSG
-    const groundCSG = CSG.FromMesh(freshGround)
+    // Store materials and physics
+    const topMaterial = this.groundTop.material
+    const bottomMaterial = this.groundBottom.material
+    const oldTopPhysics = this.groundTop.metadata?.physicsAggregate as PhysicsAggregate
+    const oldBottomPhysics = this.groundBottom.metadata?.physicsAggregate as PhysicsAggregate
+
+    // Dispose old physics
+    if (oldTopPhysics) oldTopPhysics.dispose()
+    if (oldBottomPhysics) oldBottomPhysics.dispose()
+
+    // Create fresh copies from originals
+    const freshTop = this.originalGroundTop.clone('tempTop')
+    freshTop.setEnabled(true)
+    freshTop.material = topMaterial
+
+    const freshBottom = this.originalGroundBottom.clone('tempBottom')
+    freshBottom.setEnabled(true)
+    freshBottom.material = bottomMaterial
+
+    // Cut hole in both layers
     const holeCSG = CSG.FromMesh(holeCylinder)
 
-    // Subtract hole from ground
-    const newGroundCSG = groundCSG.subtract(holeCSG)
+    // Top layer
+    const topCSG = CSG.FromMesh(freshTop)
+    const newTopCSG = topCSG.subtract(holeCSG)
+    const newTop = newTopCSG.toMesh('groundTop', topMaterial, this.scene)
+    newTop.position = this.groundTop.position.clone()
 
-    // Create new ground mesh
-    const newGround = newGroundCSG.toMesh('ground', ground.material, this.scene)
-    newGround.position = ground.position.clone()
+    // Bottom layer
+    const bottomCSG = CSG.FromMesh(freshBottom)
+    const newBottomCSG = bottomCSG.subtract(holeCSG)
+    const newBottom = newBottomCSG.toMesh('groundBottom', bottomMaterial, this.scene)
+    newBottom.position = this.groundBottom.position.clone()
 
     // Dispose old meshes
-    ground.dispose()
-    freshGround.dispose()
+    this.groundTop.dispose()
+    this.groundBottom.dispose()
+    freshTop.dispose()
+    freshBottom.dispose()
     holeCylinder.dispose()
+
+    // Update references
+    this.groundTop = newTop
+    this.groundBottom = newBottom
 
     // Reapply physics if needed
     if (this.physicsInitialized) {
-      // Use MESH type to properly handle the hole geometry
-      const newGroundAggregate = new PhysicsAggregate(
-        newGround,
+      // Top layer physics
+      const newTopAggregate = new PhysicsAggregate(
+        this.groundTop,
         PhysicsShapeType.MESH,
         { mass: 0 },
         this.scene,
       )
-      newGround.metadata = { physicsAggregate: newGroundAggregate }
+      this.groundTop.metadata = { physicsAggregate: newTopAggregate }
+
+      // Bottom layer physics
+      const newBottomAggregate = new PhysicsAggregate(
+        this.groundBottom,
+        PhysicsShapeType.MESH,
+        { mass: 0 },
+        this.scene,
+      )
+      this.groundBottom.metadata = { physicsAggregate: newBottomAggregate }
     }
   }
 

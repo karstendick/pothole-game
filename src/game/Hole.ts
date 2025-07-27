@@ -1,14 +1,4 @@
-import {
-  Scene,
-  Vector3,
-  MeshBuilder,
-  StandardMaterial,
-  Color3,
-  Mesh,
-  AbstractMesh,
-  DynamicTexture,
-} from '@babylonjs/core'
-import { Mesh as MeshConstants } from '@babylonjs/core/Meshes/mesh'
+import { Scene, Vector3, Mesh, AbstractMesh } from '@babylonjs/core'
 import {
   canSwallow as canSwallowLogic,
   calculateGrowth as calculateGrowthLogic,
@@ -40,50 +30,8 @@ export class Hole {
   }
 
   private createHoleMesh(): Mesh {
-    // Create a parent mesh to group hole components
+    // Create a parent mesh to serve as a position marker
     const holeParent = new Mesh('holeParent', this.scene)
-
-    // Create a cylinder that sits inside the hole to show depth
-    // This is purely visual - the actual hole is cut from the ground
-    const depth = 3.8 // Slightly less than hole depth to avoid z-fighting
-    const cylinder = MeshBuilder.CreateCylinder(
-      'holeCylinder',
-      {
-        diameter: this.radius * 2 - 0.05, // Slightly smaller than hole
-        height: depth,
-        tessellation: 32,
-        cap: MeshConstants.NO_CAP, // No caps so we can see inside
-      },
-      this.scene,
-    )
-
-    // Position cylinder so top is just below ground level
-    cylinder.position.y = -depth / 2 - 0.1
-
-    // Create a red and white checkerboard texture for the inside
-    const textureSize = 256
-    const checkerTexture = new DynamicTexture('checkerTexture', textureSize, this.scene)
-    const context = checkerTexture.getContext()
-
-    // Draw red and white checkerboard pattern
-    const squareSize = 32
-    for (let i = 0; i < textureSize / squareSize; i++) {
-      for (let j = 0; j < textureSize / squareSize; j++) {
-        context.fillStyle = (i + j) % 2 === 0 ? '#FFFFFF' : '#FF0000'
-        context.fillRect(i * squareSize, j * squareSize, squareSize, squareSize)
-      }
-    }
-    checkerTexture.update()
-
-    // Create material with the checkerboard texture
-    const holeMat = new StandardMaterial('holeMat', this.scene)
-    holeMat.diffuseTexture = checkerTexture
-    holeMat.specularColor = new Color3(0, 0, 0)
-    holeMat.emissiveColor = new Color3(0.1, 0.1, 0.1) // Slight glow
-    holeMat.backFaceCulling = false // See inside of cylinder
-
-    cylinder.material = holeMat
-    cylinder.parent = holeParent
 
     // Make the hole not pickable so we can click through it
     holeParent.isPickable = false
