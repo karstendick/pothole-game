@@ -11,7 +11,9 @@ import {
 export class Hole {
   private holeMesh: Mesh
   private radius: number = 0.8
+  private initialRadius: number = 0.8
   private position: Vector3 = Vector3.Zero()
+  private growthRate: number = 0.02 // How much the radius grows per swallow
 
   constructor(private scene: Scene) {
     this.holeMesh = this.createHoleMesh()
@@ -79,8 +81,10 @@ export class Hole {
 
       if (frame >= animationFrames) {
         mesh.dispose()
-        // Grow the hole slightly
-        this.grow(0.1)
+        // Grow the hole based on the size of the object swallowed
+        const meshRadius = this.getMeshRadius(mesh)
+        const growAmount = meshRadius * this.growthRate
+        this.grow(growAmount)
       } else {
         setTimeout(shrinkAnimation, 16)
       }
@@ -91,6 +95,8 @@ export class Hole {
 
   private grow(amount: number) {
     this.radius += amount
-    this.holeMesh.scaling = new Vector3(this.radius / 0.8, 1, this.radius / 0.8)
+    // Update disc to new size - recreate it to ensure it stays circular
+    this.holeMesh.dispose()
+    this.holeMesh = this.createHoleMesh()
   }
 }
