@@ -15,8 +15,8 @@ import { DebugOverlay } from './DebugOverlay'
 
 export class Game {
   private engine: Engine
-  private scene: Scene
-  private hole: Hole
+  public scene: Scene // Made public for testing
+  public hole: Hole // Made public for testing
   private currentLevel: Level
   private debugOverlay: DebugOverlay
 

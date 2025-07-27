@@ -45,6 +45,12 @@ jobs:
       - name: Run unit tests
         run: npm run test:run
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
   # Step 2: Build the application
   build:
     runs-on: ubuntu-latest
