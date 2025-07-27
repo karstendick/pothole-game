@@ -3,8 +3,21 @@ import { test, expect } from '@playwright/test'
 test.describe('Gameplay', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    // Wait for the game to load
-    await page.waitForFunction(() => (window as any).game !== undefined, { timeout: 5000 })
+
+    // Wait for canvas element to exist
+    await page.waitForSelector('#renderCanvas', { timeout: 30000 })
+
+    // Wait for the game to load - increased timeout for CI
+    await page.waitForFunction(
+      () => {
+        const game = (window as any).game
+        return game && game.scene && game.hole
+      },
+      { timeout: 30000 },
+    )
+
+    // Additional wait to ensure game is fully initialized
+    await page.waitForTimeout(500)
   })
 
   test('game should load and display canvas', async ({ page }) => {
