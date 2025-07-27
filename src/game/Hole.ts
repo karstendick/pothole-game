@@ -7,6 +7,10 @@ import {
   Mesh,
   AbstractMesh,
 } from '@babylonjs/core'
+import {
+  canSwallow as canSwallowLogic,
+  calculateGrowth as calculateGrowthLogic,
+} from './swallowLogic'
 
 export class Hole {
   private holeMesh: Mesh
@@ -54,6 +58,14 @@ export class Hole {
     return this.radius
   }
 
+  canSwallow(objectRadius: number, distanceToObject: number): boolean {
+    return canSwallowLogic(this.radius, objectRadius, distanceToObject)
+  }
+
+  calculateGrowth(objectRadius: number): number {
+    return calculateGrowthLogic(objectRadius, this.growthRate)
+  }
+
   update() {
     // Check for objects that should be swallowed
     const meshes = this.scene.meshes.filter(
@@ -68,9 +80,6 @@ export class Hole {
       const meshRadius = this.getMeshRadius(mesh)
 
       // If object is close enough and small enough, swallow it
-      // Check both center distance and edge distance for better mobile experience
-      const edgeDistance = distance - meshRadius
-
       // Debug logging - only when close to being able to swallow
       if (mesh.name === 'sphere2' && this.radius > 0.9 && this.radius < 1.1) {
         console.log(
@@ -78,7 +87,7 @@ export class Hole {
         )
       }
 
-      if (edgeDistance < this.radius * 0.9 && meshRadius < this.radius) {
+      if (this.canSwallow(meshRadius, distance)) {
         // Only swallow if not already being swallowed
         if (!this.swallowingMeshes.has(mesh.id)) {
           this.swallowingMeshes.add(mesh.id)
@@ -97,7 +106,7 @@ export class Hole {
   private swallowObject(mesh: AbstractMesh) {
     // Calculate growth amount before starting animation
     const meshRadius = this.getMeshRadius(mesh)
-    const growAmount = meshRadius * this.growthRate
+    const growAmount = this.calculateGrowth(meshRadius)
 
     console.log(
       `Swallowing ${mesh.name}: radius=${meshRadius.toFixed(2)}, growth=${growAmount.toFixed(3)}`,
@@ -126,7 +135,7 @@ export class Hole {
     shrinkAnimation()
   }
 
-  private grow(amount: number) {
+  grow(amount: number) {
     const oldRadius = this.radius
     this.radius += amount
     console.log(
