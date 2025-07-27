@@ -96,7 +96,11 @@ export class Hole {
   private grow(amount: number) {
     this.radius += amount
     // Update disc to new size - recreate it to ensure it stays circular
+    const currentX = this.position.x
+    const currentZ = this.position.z
     this.holeMesh.dispose()
     this.holeMesh = this.createHoleMesh()
+    // Restore the position after recreating
+    this.moveTo(currentX, currentZ)
   }
 }
