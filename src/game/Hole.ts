@@ -10,12 +10,18 @@ import {
 
 export class Hole {
   private holeMesh: Mesh
-  private radius: number = 0.8
-  private position: Vector3 = Vector3.Zero()
+  private radius: number
+  private position: Vector3
   private growthRate: number = 0.3 // How much the radius grows per swallow
   private swallowingMeshes: Set<string> = new Set() // Track meshes being swallowed
 
-  constructor(private scene: Scene) {
+  constructor(
+    private scene: Scene,
+    initialRadius: number = 0.8,
+    initialPosition: Vector3 = Vector3.Zero(),
+  ) {
+    this.radius = initialRadius
+    this.position = initialPosition.clone()
     this.holeMesh = this.createHoleMesh()
   }
 
@@ -42,6 +48,10 @@ export class Hole {
 
   getPosition(): Vector3 {
     return this.position.clone()
+  }
+
+  getRadius(): number {
+    return this.radius
   }
 
   update() {

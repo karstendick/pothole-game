@@ -9,16 +9,23 @@ import {
   StandardMaterial,
 } from '@babylonjs/core'
 import { Hole } from './Hole'
+import { Level } from './types'
+import { testLevel } from '../levels/testLevel'
 
 export class Game {
   private engine: Engine
   private scene: Scene
   private hole: Hole
+  private currentLevel: Level
 
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(
+    private canvas: HTMLCanvasElement,
+    level: Level = testLevel,
+  ) {
     this.engine = new Engine(canvas, true)
     this.scene = new Scene(this.engine)
-    this.hole = new Hole(this.scene)
+    this.currentLevel = level
+    this.hole = new Hole(this.scene, level.holeStartRadius, level.holeStartPosition)
 
     this.setupScene()
     this.setupControls()
@@ -35,37 +42,39 @@ export class Game {
     light.intensity = 0.7
 
     // Ground
-    const ground = MeshBuilder.CreateGround('ground', { width: 20, height: 20 }, this.scene)
+    const groundSize = this.currentLevel.groundSize
+    const ground = MeshBuilder.CreateGround(
+      'ground',
+      { width: groundSize, height: groundSize },
+      this.scene,
+    )
     const groundMat = new StandardMaterial('groundMat', this.scene)
     groundMat.diffuseColor = new Color3(0.4, 0.6, 0.3)
     ground.material = groundMat
     ground.isPickable = true // Ensure ground can be picked for hole movement
 
-    // Test objects of different sizes
-    this.createTestObjects()
+    // Create level objects
+    this.createLevelObjects()
   }
 
-  private createTestObjects() {
-    // Small sphere
-    const sphere1 = MeshBuilder.CreateSphere('sphere1', { diameter: 0.5 }, this.scene)
-    sphere1.position = new Vector3(2, 0.25, 2)
-    const mat1 = new StandardMaterial('mat1', this.scene)
-    mat1.diffuseColor = new Color3(1, 0, 0)
-    sphere1.material = mat1
+  private createLevelObjects() {
+    const objects = this.currentLevel.objects
 
-    // Medium box
-    const box1 = MeshBuilder.CreateBox('box1', { size: 1 }, this.scene)
-    box1.position = new Vector3(-2, 0.5, 2)
-    const mat2 = new StandardMaterial('mat2', this.scene)
-    mat2.diffuseColor = new Color3(0, 0, 1)
-    box1.material = mat2
+    objects.forEach((obj, index) => {
+      let mesh
 
-    // Large sphere
-    const sphere2 = MeshBuilder.CreateSphere('sphere2', { diameter: 2 }, this.scene)
-    sphere2.position = new Vector3(0, 1, -3)
-    const mat3 = new StandardMaterial('mat3', this.scene)
-    mat3.diffuseColor = new Color3(0, 1, 0)
-    sphere2.material = mat3
+      if (obj.type === 'sphere') {
+        mesh = MeshBuilder.CreateSphere(obj.name, { diameter: obj.size }, this.scene)
+      } else {
+        mesh = MeshBuilder.CreateBox(obj.name, { size: obj.size }, this.scene)
+      }
+
+      mesh.position = obj.position.clone()
+
+      const mat = new StandardMaterial(`mat${index}`, this.scene)
+      mat.diffuseColor = obj.color
+      mesh.material = mat
+    })
   }
 
   private setupControls() {

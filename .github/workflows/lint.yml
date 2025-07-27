@@ -31,3 +31,6 @@ jobs:
         
       - name: Run TypeScript compiler check
         run: npm run check:types
+
+      - name: Run unit tests
+        run: npm run test:run
