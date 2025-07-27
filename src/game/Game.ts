@@ -72,7 +72,14 @@ export class Game {
     const light = new HemisphericLight('light', new Vector3(0, 1, 0), this.scene)
     light.intensity = 0.7
 
-    // Ground - Create as two separate layers for visual depth
+    // Create the ground
+    this.createGround()
+
+    // Create level objects
+    this.createLevelObjects()
+  }
+
+  private createGround() {
     const groundSize = this.currentLevel.groundSize
 
     // Top layer - thin green grass layer
@@ -103,9 +110,6 @@ export class Game {
     bottomMat.specularColor = new Color3(0, 0, 0)
     this.groundBottom.material = bottomMat
     this.groundBottom.isPickable = true
-
-    // Create level objects
-    this.createLevelObjects()
   }
 
   private createLevelObjects() {
@@ -135,27 +139,27 @@ export class Game {
     console.log('Adding physics to scene objects...')
 
     // Add physics to both ground layers
-    if (this.groundTop) {
-      const topAggregate = new PhysicsAggregate(
-        this.groundTop,
-        PhysicsShapeType.BOX,
-        { mass: 0 },
-        this.scene,
-      )
-      this.groundTop.metadata = { physicsAggregate: topAggregate }
-      console.log('Physics added to ground top layer')
+    if (!this.groundTop || !this.groundBottom) {
+      throw new Error('Ground layers not initialized - this should never happen')
     }
 
-    if (this.groundBottom) {
-      const bottomAggregate = new PhysicsAggregate(
-        this.groundBottom,
-        PhysicsShapeType.BOX,
-        { mass: 0 },
-        this.scene,
-      )
-      this.groundBottom.metadata = { physicsAggregate: bottomAggregate }
-      console.log('Physics added to ground bottom layer')
-    }
+    const topAggregate = new PhysicsAggregate(
+      this.groundTop,
+      PhysicsShapeType.BOX,
+      { mass: 0 },
+      this.scene,
+    )
+    this.groundTop.metadata = { physicsAggregate: topAggregate }
+    console.log('Physics added to ground top layer')
+
+    const bottomAggregate = new PhysicsAggregate(
+      this.groundBottom,
+      PhysicsShapeType.BOX,
+      { mass: 0 },
+      this.scene,
+    )
+    this.groundBottom.metadata = { physicsAggregate: bottomAggregate }
+    console.log('Physics added to ground bottom layer')
 
     // Add physics to all game objects
     let objectCount = 0
@@ -272,7 +276,9 @@ export class Game {
   }
 
   private _cutHoleInGroundImmediate(position: Vector3, radius: number) {
-    if (!this.groundTop || !this.groundBottom) return
+    if (!this.groundTop || !this.groundBottom) {
+      throw new Error('Ground layers not initialized - cannot cut hole')
+    }
 
     // Store originals on first cut
     if (!this.originalGroundTop) {
