@@ -13,31 +13,44 @@ import {
 } from '@babylonjs/core'
 import { CSG } from '@babylonjs/core/Meshes/csg'
 import { Hole } from './Hole'
-import { Level } from './types'
-import { testLevel } from '../levels/testLevel'
 import { DebugOverlay } from './DebugOverlay'
 import { initializePhysics } from './physics'
+import { LevelManager } from './LevelManager'
+import { GameCompleteUI } from './GameCompleteUI'
 
 export class Game {
   private engine: Engine
   public scene: Scene // Made public for testing
   public hole: Hole // Made public for testing
-  private currentLevel: Level
+  private levelManager: LevelManager
   private debugOverlay: DebugOverlay
+  private gameCompleteUI: GameCompleteUI
   private physicsInitialized: boolean = false
-  private physicsAggregates: Map<string, PhysicsAggregate> = new Map()
 
-  constructor(
-    private canvas: HTMLCanvasElement,
-    level: Level = testLevel,
-  ) {
+  constructor(private canvas: HTMLCanvasElement) {
     this.engine = new Engine(canvas, true)
     this.scene = new Scene(this.engine)
-    this.currentLevel = level
 
     // Initialize game without physics first
     this.setupScene()
-    this.hole = new Hole(this.scene, level.holeStartRadius, level.holeStartPosition, this)
+
+    // Create hole with default size (will be updated by level)
+    this.hole = new Hole(this.scene, 0.8, Vector3.Zero(), this)
+
+    // Create level manager
+    this.levelManager = new LevelManager(
+      this.scene,
+      this.hole,
+      () => this.onVictory(),
+      () => this.onGameComplete(),
+    )
+
+    // Connect hole callback to level manager
+    this.hole.setOnObjectSwallowed((mesh) => this.levelManager.onObjectSwallowed(mesh))
+
+    // Create game complete UI
+    this.gameCompleteUI = new GameCompleteUI(this.scene, () => this.onRestartGame())
+
     this.setupControls()
     this.debugOverlay = new DebugOverlay(this.scene)
 
@@ -55,8 +68,11 @@ export class Game {
       this.physicsInitialized = true
       console.log('Physics initialized successfully')
 
-      // Add physics to existing objects
-      this.addPhysicsToScene()
+      // Add physics to ground
+      this.addPhysicsToGround()
+
+      // Load the first level
+      this.levelManager.loadCurrentLevel()
     } catch (error) {
       console.error('Failed to initialize physics:', error)
     }
@@ -72,16 +88,11 @@ export class Game {
     const light = new HemisphericLight('light', new Vector3(0, 1, 0), this.scene)
     light.intensity = 0.7
 
-    // Create the ground
-    this.createGround()
-
-    // Create level objects
-    this.createLevelObjects()
+    // Create the ground (size will be updated by level)
+    this.createGround(20) // Default size
   }
 
-  private createGround() {
-    const groundSize = this.currentLevel.groundSize
-
+  private createGround(groundSize: number = 20) {
     // Top layer - thin green grass layer
     const topThickness = 1.5
     this.groundTop = MeshBuilder.CreateBox(
@@ -112,49 +123,7 @@ export class Game {
     this.groundBottom.isPickable = true
   }
 
-  private createLevelObjects() {
-    const objects = this.currentLevel.objects
-
-    objects.forEach((obj, index) => {
-      let mesh
-
-      if (obj.type === 'sphere') {
-        mesh = MeshBuilder.CreateSphere(obj.name, { diameter: obj.size }, this.scene)
-      } else {
-        // Support custom dimensions for boxes
-        if (obj.dimensions) {
-          mesh = MeshBuilder.CreateBox(
-            obj.name,
-            {
-              width: obj.dimensions.x,
-              height: obj.dimensions.y,
-              depth: obj.dimensions.z,
-            },
-            this.scene,
-          )
-        } else {
-          mesh = MeshBuilder.CreateBox(obj.name, { size: obj.size }, this.scene)
-        }
-      }
-
-      mesh.position = obj.position.clone()
-
-      const mat = new StandardMaterial(`mat${index}`, this.scene)
-      mat.diffuseColor = obj.color
-      mesh.material = mat
-
-      // Store object type and dimensions for physics setup
-      mesh.metadata = {
-        type: obj.type,
-        size: obj.size,
-        dimensions: obj.dimensions,
-      }
-    })
-  }
-
-  private addPhysicsToScene() {
-    console.log('Adding physics to scene objects...')
-
+  private addPhysicsToGround() {
     // Add physics to both ground layers
     if (!this.groundTop || !this.groundBottom) {
       throw new Error('Ground layers not initialized')
@@ -167,7 +136,6 @@ export class Game {
       this.scene,
     )
     this.groundTop.metadata = { physicsAggregate: topAggregate }
-    console.log('Physics added to ground top layer')
 
     const bottomAggregate = new PhysicsAggregate(
       this.groundBottom,
@@ -176,36 +144,6 @@ export class Game {
       this.scene,
     )
     this.groundBottom.metadata = { physicsAggregate: bottomAggregate }
-    console.log('Physics added to ground bottom layer')
-
-    // Add physics to all game objects
-    let objectCount = 0
-    this.scene.meshes.forEach((mesh) => {
-      if (mesh.name.startsWith('sphere') || mesh.name.startsWith('box')) {
-        const shapeType =
-          mesh.metadata?.type === 'sphere' ? PhysicsShapeType.SPHERE : PhysicsShapeType.BOX
-
-        // Add physics with mass based on size
-        const mass = mesh.metadata?.size || 1
-        const aggregate = new PhysicsAggregate(
-          mesh,
-          shapeType,
-          {
-            mass: mass,
-            friction: 0.5,
-            restitution: 0.3,
-          },
-          this.scene,
-        )
-
-        // Store the aggregate on the mesh for easy access
-        mesh.metadata = { ...mesh.metadata, physicsAggregate: aggregate }
-
-        objectCount++
-        console.log(`Physics added to ${mesh.name} (mass: ${mass})`)
-      }
-    })
-    console.log(`Physics added to ${objectCount} objects`)
   }
 
   private setupControls() {
@@ -255,8 +193,24 @@ export class Game {
     )
   }
 
-  getPhysicsAggregate(meshName: string): PhysicsAggregate | undefined {
-    return this.physicsAggregates.get(meshName)
+  private onVictory() {
+    console.log('Level complete!')
+    // TODO: Add celebration animation
+    // For now, just show a message
+    const currentLevel = this.levelManager.getCurrentLevel()
+    if (currentLevel) {
+      console.log(`Completed: ${currentLevel.name}`)
+    }
+  }
+
+  private onGameComplete() {
+    console.log('All levels completed! Showing game complete screen.')
+    this.gameCompleteUI.show()
+  }
+
+  private onRestartGame() {
+    console.log('Restarting game...')
+    this.levelManager.resetProgress()
   }
 
   private groundTop: Mesh | null = null

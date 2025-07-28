@@ -25,6 +25,9 @@ export const createMockMesh = (name: string, position = { x: 0, y: 0, z: 0 }) =>
       z: position.z,
     },
     scaling: { x: 1, y: 1, z: 1 },
+    metadata: {
+      levelObjectId: name, // Add levelObjectId metadata so the mesh is recognized as swallowable
+    },
     dispose: vi.fn(() => {
       disposed = true
     }),

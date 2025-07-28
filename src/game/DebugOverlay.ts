@@ -9,6 +9,7 @@ import {
 } from '@babylonjs/core'
 import { AdvancedDynamicTexture, Rectangle, TextBlock, Control } from '@babylonjs/gui'
 import { Hole } from './Hole'
+import { getSwallowableObjects } from './utils/meshUtils'
 
 export class DebugOverlay {
   private enabled: boolean = false
@@ -193,12 +194,7 @@ export class DebugOverlay {
     const holePos = hole.getPosition()
 
     // Get swallowable objects from scene
-    const meshes = this.scene.meshes.filter(
-      (mesh) =>
-        mesh.name !== 'hole' &&
-        mesh.name !== 'ground' &&
-        (mesh.name.startsWith('sphere') || mesh.name.startsWith('box')),
-    )
+    const meshes = getSwallowableObjects(this.scene.meshes)
 
     const debugInfo = [
       `Hole Radius: ${holeRadius.toFixed(3)}`,

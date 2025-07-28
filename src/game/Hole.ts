@@ -1,4 +1,5 @@
 import { Scene, Vector3, Mesh, AbstractMesh } from '@babylonjs/core'
+import { getSwallowableObjects } from './utils/meshUtils'
 
 export class Hole {
   private holeMesh: Mesh
@@ -7,6 +8,7 @@ export class Hole {
   private growthRate: number = 0.3 // How much the radius grows per swallow
   private swallowingMeshes: Set<string> = new Set() // Track meshes being swallowed
   private game: { cutHoleInGround: (position: Vector3, radius: number) => void } // Reference to Game instance for CSG operations
+  private onObjectSwallowed?: (mesh: AbstractMesh) => void // Callback for when object is swallowed
 
   constructor(
     private scene: Scene,
@@ -56,8 +58,18 @@ export class Hole {
     return this.radius
   }
 
+  setRadius(radius: number) {
+    this.radius = radius
+    // Re-cut hole with new radius
+    this.game.cutHoleInGround(this.position, this.radius)
+  }
+
   getHoleMesh(): Mesh {
     return this.holeMesh
+  }
+
+  setOnObjectSwallowed(callback: (mesh: AbstractMesh) => void) {
+    this.onObjectSwallowed = callback
   }
 
   calculateGrowth(objectRadius: number): number {
@@ -66,13 +78,7 @@ export class Hole {
 
   update() {
     // Check for objects that should be swallowed
-    const meshes = this.scene.meshes.filter(
-      (mesh) =>
-        mesh.name !== 'hole' &&
-        mesh.name !== 'ground' &&
-        (mesh.name.startsWith('sphere') || mesh.name.startsWith('box')) &&
-        !mesh.isDisposed(),
-    )
+    const meshes = getSwallowableObjects(this.scene.meshes)
 
     meshes.forEach((mesh) => {
       // Simple check: is the object below ground level?
@@ -102,15 +108,20 @@ export class Hole {
     const checkVisibility = () => {
       // Check if already disposed or removed from swallowing set
       if (!mesh.isDisposed() && this.swallowingMeshes.has(mesh.id)) {
-        // Check if mesh is in camera frustum or deep enough
-        const camera = this.scene.activeCamera
-        if ((camera && !camera.isInFrustum(mesh)) || mesh.position.y < -10) {
-          // Object is out of view or deep enough - safe to dispose
+        console.log(`Checking ${mesh.name} at y=${mesh.position.y.toFixed(2)}`)
+
+        // Dispose if deep enough (ignore camera frustum check)
+        if (mesh.position.y < -5) {
+          console.log(`Disposing ${mesh.name} at depth ${mesh.position.y}`)
+
+          // Notify callback BEFORE disposing (so metadata is still available)
+          this.onObjectSwallowed?.(mesh)
+
           mesh.dispose()
           this.swallowingMeshes.delete(mesh.id)
           this.grow(growAmount)
         } else {
-          // Still visible, check again later
+          // Still falling, check again later
           setTimeout(checkVisibility, 100)
         }
       }
