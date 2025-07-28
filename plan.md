@@ -42,12 +42,18 @@ Using compound shapes built from primitives:
 Linear progression through West Philadelphia locations:
 
 #### Level 1: West Philly Sidewalk (Tutorial)
-- **Objects**: Pebbles, bottle caps, pennies, toys, chalk
+- **MVP Objects**:
+  - 2 pebbles (tiny, starter objects)
+  - 1 bottle cap (small)
+  - 1 tennis ball (medium)
 - **Victory**: Swallow all objects
 - **Teaches**: Basic movement and size progression
 
 #### Level 2: Clark Park Playground
-- **Objects**: Marbles, balls, buckets, tricycles, sandbox
+- **MVP Objects**:
+  - 2 marbles (small)
+  - 1 playground ball (medium)
+  - 1 sandbox (large, required for victory)
 - **Victory**: Swallow the sandbox
 - **Teaches**: Some objects are required for victory
 
@@ -71,6 +77,14 @@ Linear progression through West Philadelphia locations:
 - **Victory**: Swallow all the burning barrels
 - **Teaches**: Environmental hazards and special objects
 
+### Minimal Implementation Order
+1. Create basic LevelConfig type
+2. Build simple LevelManager that can load/transition
+3. Create 4 objects for Level 1 (just primitives first)
+4. Create 4 objects for Level 2 (including sandbox)
+5. Test progression: Level 1 → Victory → Level 2 → Victory
+6. Then expand with compound objects and more content
+
 ### Implementation Tasks
 1. **Object System**
    - [ ] ProceduralObjectBuilder class
@@ -86,11 +100,11 @@ Linear progression through West Philadelphia locations:
    - [ ] Simple level transitions
    - [ ] Save progress to localStorage
 
-3. **Level Content**
-   - [ ] Design Level 1 objects
-   - [ ] Design Level 2 objects
-   - [ ] Balance progression
-   - [ ] Test victory conditions
+3. **Level Content (MVP)**
+   - [ ] Create 3-5 objects for Level 1
+   - [ ] Create 3-5 objects for Level 2
+   - [ ] Test level progression works
+   - [ ] Add more objects later
 
 ## Future Phases
 
