@@ -92,9 +92,54 @@ export class Game {
     this.createGround(20) // Default size
   }
 
+  private calculateOptimalTopLayerThickness(groundSize: number, cameraPos: Vector3): number {
+    // Consider two critical cases:
+    // 1. Hole at far edge (top of screen) - we look at the near edge of hole
+    // 2. Hole at near edge (bottom of screen) - we look at the far edge of hole
+
+    const typicalHoleRadius = 1.0 // A reasonable hole size to optimize for
+
+    // Case 1: Hole far from camera (z = groundSize/2)
+    // We're looking at the near edge of the hole
+    const farHoleNearEdge = groundSize / 2 - typicalHoleRadius
+    const farDist = Math.sqrt(Math.pow(cameraPos.x, 2) + Math.pow(farHoleNearEdge - cameraPos.z, 2))
+    const farAngle = Math.atan(cameraPos.y / farDist)
+    const farVisibleDepth = typicalHoleRadius * Math.tan(farAngle)
+
+    // Case 2: Hole near camera (z = -groundSize/2)
+    // We're looking at the far edge of the hole
+    const nearHoleFarEdge = -groundSize / 2 + typicalHoleRadius
+    const nearDist = Math.sqrt(
+      Math.pow(cameraPos.x, 2) + Math.pow(nearHoleFarEdge - cameraPos.z, 2),
+    )
+    const nearAngle = Math.atan(cameraPos.y / nearDist)
+    const nearVisibleDepth = typicalHoleRadius * Math.tan(nearAngle)
+
+    // Use the minimum of the two cases to ensure visibility everywhere
+    const minVisibleDepth = Math.min(farVisibleDepth, nearVisibleDepth)
+
+    // Set thickness to 60% of minimum visible depth for good contrast
+    const topThickness = minVisibleDepth * 0.6
+
+    console.log(
+      `Far hole visible depth: ${farVisibleDepth.toFixed(2)} units at ${((farAngle * 180) / Math.PI).toFixed(1)}°`,
+    )
+    console.log(
+      `Near hole visible depth: ${nearVisibleDepth.toFixed(2)} units at ${((nearAngle * 180) / Math.PI).toFixed(1)}°`,
+    )
+    console.log(`Minimum visible depth: ${minVisibleDepth.toFixed(2)} units`)
+    console.log(`Top layer thickness: ${topThickness.toFixed(2)} units`)
+
+    return topThickness
+  }
+
   private createGround(groundSize: number = 20) {
-    // Top layer - thin green grass layer
-    const topThickness = 1.5
+    // Camera is at (0, 15, -8) looking at origin
+    // We want to ALWAYS see both layers when looking into a hole
+    const cameraPos = new Vector3(0, 15, -8)
+
+    // Calculate optimal thickness to ensure hole interior is always visible
+    const topThickness = this.calculateOptimalTopLayerThickness(groundSize, cameraPos)
     this.groundTop = MeshBuilder.CreateBox(
       'groundTop',
       { width: groundSize, height: topThickness, depth: groundSize },
