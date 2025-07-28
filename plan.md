@@ -127,17 +127,22 @@ Linear progression through West Philadelphia locations:
 ## TODO List (Priority Order)
 
 ### High Priority
-- [ ] Fix hole visibility issues (can't see two-tone interior)
-- [ ] Add more objects to flesh out levels (currently commented out)
+- [x] Fix hole visibility issues (can't see two-tone interior) ✅
+- [x] Add more objects to flesh out levels (currently commented out) ✅
 
 ### Medium Priority  
-- [ ] Create compound object builder for primitives
 - [ ] Add victory celebration animation
+- [ ] Create compound object builder for primitives
 - [ ] Create Level 3: Alexander Penn School
 
 ### Low Priority
 - [ ] Add particle effects when objects fall
 - [ ] Add rim lighting around hole edge
+
+## Recent Accomplishments
+- **Hole Visibility Fixed**: Implemented geometry-based calculation to ensure two-tone earth layers are always visible
+- **Level System Complete**: Two playable levels with progression and restart functionality
+- **Object Variety**: Added commented-out objects ready to be enabled when needed
 
 ## Future Phases
 
