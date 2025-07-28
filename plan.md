@@ -22,10 +22,29 @@ A kid-friendly game where you play as a heroic pothole in Philadelphia, growing 
 - Available at: https://karstendick.github.io/pothole-game
 - Saves progress locally (localStorage)
 
-## Current Phase: Object System & Level Design 🚧
+## Completed Features ✅
 
-### Object System (Procedural Approach)
-Using compound shapes built from primitives:
+### Level System
+- ✅ LevelConfig types with flexible victory conditions
+- ✅ LevelManager with automatic progression
+- ✅ Two playable levels (West Philly Sidewalk & Clark Park Playground)
+- ✅ Game complete screen with restart button
+- ✅ Progress saved to localStorage
+- ✅ Victory condition checking (all objects vs specific objects)
+
+### Core Gameplay
+- ✅ Simplified swallowing mechanics (y-position based)
+- ✅ Object disposal when deep enough
+- ✅ Hole growth based on object size
+- ✅ Debug overlay with object tracking
+
+## Current Phase: Polish & Content 🚧
+
+### Next Priority: Hole Visibility
+The hole interior (two-tone earth layers) is not visible during gameplay. This is a critical visual feature that helps players understand they're controlling a hole.
+
+### Object System (Future Enhancement)
+For compound shapes built from primitives:
 
 ```typescript
 {
@@ -86,25 +105,39 @@ Linear progression through West Philadelphia locations:
 6. Then expand with compound objects and more content
 
 ### Implementation Tasks
-1. **Object System**
+
+1. **Immediate Priorities**
+   - [ ] Fix hole visibility (see interior layers)
+   - [ ] Add victory celebration animation
+   - [ ] Create Level 3: Alexander Penn School
+
+2. **Object System (Future)**
    - [ ] ProceduralObjectBuilder class
    - [ ] Primitive shape generation
    - [ ] Compound object assembly
    - [ ] Material system
    - [ ] Physics body generation
 
-2. **Level System**
-   - [ ] LevelConfig types
-   - [ ] LevelManager class
-   - [ ] Victory condition checking
-   - [ ] Simple level transitions
-   - [ ] Save progress to localStorage
+3. **Polish & Effects**
+   - [ ] Particle effects when objects fall
+   - [ ] Rim lighting around hole edge
+   - [ ] Smooth hole growth animation
+   - [ ] Sound effects (silly sounds for kids)
 
-3. **Level Content (MVP)**
-   - [ ] Create 3-5 objects for Level 1
-   - [ ] Create 3-5 objects for Level 2
-   - [ ] Test level progression works
-   - [ ] Add more objects later
+## TODO List (Priority Order)
+
+### High Priority
+- [ ] Fix hole visibility issues (can't see two-tone interior)
+- [ ] Add more objects to flesh out levels (currently commented out)
+
+### Medium Priority  
+- [ ] Create compound object builder for primitives
+- [ ] Add victory celebration animation
+- [ ] Create Level 3: Alexander Penn School
+
+### Low Priority
+- [ ] Add particle effects when objects fall
+- [ ] Add rim lighting around hole edge
 
 ## Future Phases
 
@@ -119,7 +152,7 @@ Linear progression through West Philadelphia locations:
 ### Phase 5: UI & User Experience
 - [ ] Simple start screen
 - [ ] Pause functionality
-- [ ] Level complete screen
+- [ ] Level complete screen (basic version done)
 - [ ] Visual tutorials
 - [ ] Current level indicator
 
