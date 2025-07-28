@@ -42,7 +42,13 @@ test.describe('Gameplay', () => {
     await page.waitForFunction(
       () => {
         const game = (window as any).game
-        return game && game.scene && game.hole
+        // Check that game is loaded AND level objects exist
+        return (
+          game &&
+          game.scene &&
+          game.hole &&
+          game.scene.meshes.some((mesh: any) => mesh.metadata?.levelObjectId !== undefined)
+        )
       },
       { timeout: 30000 },
     )
@@ -113,39 +119,45 @@ test.describe('Gameplay', () => {
     const centerX = canvasBox!.x + canvasBox!.width / 2
     const centerY = canvasBox!.y + canvasBox!.height / 2
 
-    // Drag up and right (towards where red sphere typically is)
+    // First, check what objects are available and their positions
+    const objectInfo = await page.evaluate(() => {
+      const game = (window as any).game
+      const objects = game.scene.meshes.filter(
+        (mesh: any) => mesh.metadata?.levelObjectId !== undefined,
+      )
+      return objects.map((obj: any) => ({
+        id: obj.metadata.levelObjectId,
+        position: { x: obj.position.x, z: obj.position.z },
+        radius: obj.metadata.swallowRadius,
+      }))
+    })
+
+    // Find the smallest object (should be a pebble)
+    const smallestObject = objectInfo.reduce((min: any, obj: any) =>
+      obj.radius < min.radius ? obj : min,
+    )
+
+    // Calculate drag direction to move towards the smallest object
+    // Camera is at (0, 15, -8) looking at origin, so we need to convert world to screen
+    const dragX = smallestObject.position.x * 50 // Scale factor for screen movement
+    const dragZ = -smallestObject.position.z * 50 // Invert Z for screen space
+
+    // Drag towards the smallest object
     await page.mouse.move(centerX, centerY)
     await page.mouse.down()
-    await page.mouse.move(centerX + 100, centerY - 100, { steps: 20 })
+    await page.mouse.move(centerX + dragX, centerY + dragZ, { steps: 20 })
     await page.mouse.up()
 
-    // Wait for swallow to potentially happen
-    await page.waitForTimeout(1500)
+    // Wait for object to fall and be swallowed
+    await page.waitForTimeout(2000)
 
     // Check if radius increased
-    const newRadius = await page.evaluate(() => {
+    const finalRadius = await page.evaluate(() => {
       const game = (window as any).game
       return game.hole.getRadius()
     })
 
-    // If no growth, try moving more
-    if (newRadius === initialRadius) {
-      // Try another direction
-      await page.mouse.move(centerX, centerY)
-      await page.mouse.down()
-      await page.mouse.move(centerX - 100, centerY - 100, { steps: 20 })
-      await page.mouse.up()
-      await page.waitForTimeout(1500)
-
-      const finalRadius = await page.evaluate(() => {
-        const game = (window as any).game
-        return game.hole.getRadius()
-      })
-
-      expect(finalRadius).toBeGreaterThan(initialRadius)
-    } else {
-      expect(newRadius).toBeGreaterThan(initialRadius)
-    }
+    expect(finalRadius).toBeGreaterThan(initialRadius)
   })
 
   test('debug mode should toggle with D key', async ({ page }) => {
@@ -181,8 +193,7 @@ test.describe('Gameplay', () => {
         const game = (window as any).game
         const scene = game.scene
         return scene.meshes.filter(
-          (mesh: any) =>
-            (mesh.name.startsWith('sphere') || mesh.name.startsWith('box')) && !mesh.isDisposed(),
+          (mesh: any) => mesh.metadata?.levelObjectId !== undefined && !mesh.isDisposed(),
         ).length
       })
 
@@ -195,32 +206,46 @@ test.describe('Gameplay', () => {
     const centerX = canvasBox!.x + canvasBox!.width / 2
     const centerY = canvasBox!.y + canvasBox!.height / 2
 
-    // Try multiple drag patterns to find and swallow objects
-    const patterns = [
-      { dx: 100, dy: -100 }, // up-right
-      { dx: -100, dy: -100 }, // up-left
-      { dx: 100, dy: 100 }, // down-right
-      { dx: -100, dy: 100 }, // down-left
-      { dx: 0, dy: -150 }, // up
-      { dx: 150, dy: 0 }, // right
-    ]
+    // Get object positions to target them specifically
+    const objectInfo = await page.evaluate(() => {
+      const game = (window as any).game
+      const objects = game.scene.meshes.filter(
+        (mesh: any) => mesh.metadata?.levelObjectId !== undefined,
+      )
+      return objects.map((obj: any) => ({
+        id: obj.metadata.levelObjectId,
+        position: { x: obj.position.x, z: obj.position.z },
+        radius: obj.metadata.swallowRadius,
+      }))
+    })
 
-    for (const pattern of patterns) {
+    // Sort objects by size to swallow smallest first
+    const sortedObjects = objectInfo.sort((a: any, b: any) => a.radius - b.radius)
+
+    // Try to swallow at least one object
+    let swallowed = false
+    for (const obj of sortedObjects.slice(0, 2)) {
+      // Try first two smallest objects
+      // Calculate drag direction
+      const dragX = obj.position.x * 50
+      const dragZ = -obj.position.z * 50
+
       await page.mouse.move(centerX, centerY)
       await page.mouse.down()
-      await page.mouse.move(centerX + pattern.dx, centerY + pattern.dy, { steps: 20 })
+      await page.mouse.move(centerX + dragX, centerY + dragZ, { steps: 20 })
       await page.mouse.up()
-      await page.waitForTimeout(1000)
+
+      // Wait for object to potentially be swallowed
+      await page.waitForTimeout(2000)
 
       const currentCount = await getObjectCount()
       if (currentCount < initialCount) {
-        // Progress! We swallowed something
+        swallowed = true
         break
       }
     }
 
-    const finalCount = await getObjectCount()
-    expect(finalCount).toBeLessThan(initialCount)
+    expect(swallowed).toBe(true)
   })
 
   test('touch/mobile controls should work', async ({ page, isMobile }) => {
